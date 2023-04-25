@@ -36,3 +36,10 @@ def get_csv_cols(bands_in_order):
     csv_cols.extend(list(map(lambda x: x+" label",the_band_pairs)))
     csv_cols.extend(list(map(lambda x: x+" score",the_band_pairs)))
     return the_band_pairs, csv_cols
+
+
+#folder helper
+def check_if_folder_exists_and_create(path):
+    '''check if folder exists and if not, create it'''
+    if not os.path.exists(path):
+        os.makedirs(path)
