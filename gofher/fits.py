@@ -19,7 +19,7 @@ def read_fits(path):
     data = hdul[0].data
     return data
 
-def view_fits(data,mask=None,std_range=None,cmap=None):
+def view_fits(data,mask=None,std_range=None,cmap=None,save_path=""):
     """view fits files
 
     Args:
@@ -44,9 +44,13 @@ def view_fits(data,mask=None,std_range=None,cmap=None):
     im = ax.imshow(data, interpolation='nearest', cmap='gray', vmin=vmin, vmax=vmax, origin='lower')
     if not isinstance(cmap,type(None)):
         ax.imshow(cmap, origin= 'lower',alpha=0.25)
-    plt.show()
+    if save_path == "":
+        plt.show()
+    else:
+        plt.savefig(save_path)
+        plt.clf()
     
-def view_fits_with_sep_objects(data,sep_objects,f=6):
+def view_fits_with_sep_objects(data,sep_objects,f=6, save_path=""):
     """view fits files with sep objects ontop"""
     
     fig, ax = plt.subplots() #https://matplotlib.org/stable/api/_as_gen/matplotlib.lines.Line2D.html#matplotlib.lines.Line2D
@@ -87,4 +91,8 @@ def view_fits_with_sep_objects(data,sep_objects,f=6):
         
     plt.xlim([0, data.shape[0]])
     plt.ylim([0, data.shape[0]])
-    plt.show()
+    if save_path == "":
+        plt.show()
+    else:
+        plt.savefig(save_path)
+        plt.clf()

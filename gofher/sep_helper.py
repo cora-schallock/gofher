@@ -1,6 +1,8 @@
 import sep
 import numpy as np
 
+from fits import view_fits_with_sep_objects
+
 def calc_sep_size(a,b):
     return 3.14*a*b
 
@@ -17,6 +19,7 @@ def run_sep(data, cm_x, cm_y):
     mu_bkg = bkg.globalback
     
     objects = sep.extract(data_sub, 1.5, err=bkg.globalrms)
+    #view_fits_with_sep_objects(data,objects,f=3,save_path="C:\\Users\\school\\Desktop\\adv_lecture\\ngc3368_sep.png")
     
     the_el_sep = None
     the_el_sep_dist = np.inf
