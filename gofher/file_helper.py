@@ -14,7 +14,7 @@ def write_csv(csv_path,csv_col,csv_rows):
 
 from scipy.stats import gmean
 
-def prepare_csv_row(the_gal,dark_side_label,the_band_pairs, mean_dict, p_value_dict, score_dict, pl, nl, the_label_dict):
+def prepare_csv_row(the_gal,dark_side_label,the_band_pairs, mean_dict, p_value_dict, score_dict, pl, nl, the_label_dict,ks_dict):
     the_row = [the_gal.name, dark_side_label, pl, nl]
     
     mean_row = []
@@ -27,6 +27,8 @@ def prepare_csv_row(the_gal,dark_side_label,the_band_pairs, mean_dict, p_value_d
     score_row = []
     vote_count = 0
     vote_outcome = 0
+    ks_d_stats = []
+    ks_p_values = []
     
     for bp in the_band_pairs:
         mean_row.append(mean_dict[bp])
@@ -34,26 +36,33 @@ def prepare_csv_row(the_gal,dark_side_label,the_band_pairs, mean_dict, p_value_d
         label_row.append(the_label_dict[bp])
         score_row.append(score_dict[bp])
 
+        the_ks = ks_dict[bp]
+        if len(the_ks) != 2: continue
+        ks_d_stats.append(the_ks[0])
+        ks_p_values.append(the_ks[1])
+
     scores = np.array(score_row)
     if len(scores[scores==1]) > 0:
         avg_mean_plus = np.mean(np.array(mean_row)[scores==1])
         #p_mean_plus = np.mean(np.array(p_row)[scores==1]) #arithmetic mean
         p_mean_plus = gmean(np.array(p_row)[scores==1]) #geometric mean
     else:
-        p_mean_plus = ""
+        p_mean_plus = "-"
     if len(scores[scores==-1]) > 0:
         avg_mean_min = np.mean(np.array(mean_row)[scores==-1])
         #p_mean_min = np.mean(np.array(p_row)[scores==-1]) #arithmetic mean
         p_mean_min = gmean(np.array(p_row)[scores==-1]) #geometric mean
     else:
-        p_mean_min = ""
+        p_mean_min = "-"
     vote_count = len(scores[scores==1]) - len(scores[scores==-1])
     vote_outcome = np.sign(vote_count)
 
-    the_row.extend(mean_row)
-    the_row.extend([avg_mean_plus,avg_mean_min])
-    the_row.extend(p_row)
-    the_row.extend([p_mean_plus,p_mean_min])
+    #the_row.extend(mean_row)
+    #the_row.extend([avg_mean_plus,avg_mean_min])
+    #the_row.extend(p_row)
+    #the_row.extend([p_mean_plus,p_mean_min])
+    the_row.extend(ks_d_stats)
+    the_row.extend(ks_p_values)
     the_row.extend(label_row)
     the_row.extend(score_row)
     the_row.extend([vote_count,vote_outcome])
@@ -65,10 +74,12 @@ def get_csv_cols(bands_in_order):
     the_band_pairs = []
     for (first_band,base_band) in itertools.combinations(bands_in_order, 2):
         the_band_pairs.append(get_key(first_band,base_band))
-    csv_cols.extend(list(map(lambda x: x+" mean diff",the_band_pairs)))
-    csv_cols.extend(['avg. mean diff score +1','avg. mean diff score -1'])
-    csv_cols.extend(list(map(lambda x: x+" ks p-value",the_band_pairs)))
-    csv_cols.extend(['avg. ks p-value score +1','avg. ks p-value score -1'])
+    #csv_cols.extend(list(map(lambda x: x+" mean diff",the_band_pairs)))
+    #csv_cols.extend(['avg. mean diff score +1','avg. mean diff score -1'])
+    #csv_cols.extend(list(map(lambda x: x+" ks p-value",the_band_pairs)))
+    #csv_cols.extend(['avg. ks p-value score +1','avg. ks p-value score -1'])
+    csv_cols.extend(list(map(lambda x: x+" ks_d",the_band_pairs)))
+    csv_cols.extend(list(map(lambda x: x+" ks_p_val",the_band_pairs)))
     csv_cols.extend(list(map(lambda x: x+" label",the_band_pairs)))
     csv_cols.extend(list(map(lambda x: x+" score",the_band_pairs)))
     csv_cols.extend(['vote count', 'vote score'])

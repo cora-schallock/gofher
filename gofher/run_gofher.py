@@ -12,15 +12,20 @@ from sep_helper import run_sep
 from gofher import extract_data_for_histogram
 from spin_parity import classify_spin_parity
 from visualize import visualize_hist, get_key
-from spin_parity import read_spin_parity_galaxies_label_from_csv
+from spin_parity import read_spin_parity_galaxies_label_from_csv, read_spin_parity_galaxies_label_from_csv_sdss
 from run_fit import calculate_dist
 from run_sersic import fit_sersic, evaluate_sersic_model
 from mask import create_ellipse_mask
 from fits import view_fits, read_fits
 from file_helper import prepare_csv_row, get_csv_cols, write_csv
 
+from scipy.stats import ks_2samp
+from scipy.stats import entropy 
+
 #for lecture:
 from visualize import visualize_map, visualize_single_hist
+
+import matplotlib.pyplot as plt
 
 def find_mask_spot_closest_to_center(the_mask,approx_center):
     shape=the_mask.shape
@@ -146,16 +151,17 @@ def run_gofher_on_galaxy(name, fits_path, bands_in_order, ref_bands_in_order, da
     sersic_model = fit_sersic(data, the_el_sep['b']*0.5, the_el_sep['x'],the_el_sep['y'],the_el_sep['a'],the_el_sep['b'],the_el_sep['theta'], center_mask,center_buffer=8,theta_buffer=np.pi/16)
     #print(the_el_sep['x'],the_el_sep['y'],the_el_sep['a'],the_el_sep['b'],the_el_sep['theta'])
     #print(sersic_model)
-    view_fits(evaluate_sersic_model(sersic_model,shape),save_path="C:\\Users\\school\\Desktop\\adv_lecture\\ngc1_sersic.png")
+    ##view_fits(evaluate_sersic_model(sersic_model,shape),save_path="C:\\Users\\school\\Desktop\\adv_lecture\\ngc1_sersic.png")
     eval_fit = data-evaluate_sersic_model(sersic_model,shape)
     eval_fit[bright_spot_mask] = 0
-    view_fits(eval_fit,std_range=3,save_path="C:\\Users\\school\\Desktop\\adv_lecture\\ngc1_sersic_res.png")
+    ##view_fits(eval_fit,std_range=3,save_path="C:\\Users\\school\\Desktop\\adv_lecture\\ngc1_sersic_res.png")
 
 
     #set galaxy parameters:
     the_gal.x = getattr(sersic_model,'x_0').value
     the_gal.y = getattr(sersic_model,'y_0').value
-    the_gal.theta = getattr(sersic_model,'theta').value
+    #the_gal.theta = getattr(sersic_model,'theta').value
+    the_gal.theta = the_el_sep['theta'] #test if this angle better
     the_gal.a = the_el_sep['a']
     the_gal.b = the_el_sep['b']
 
@@ -164,7 +170,7 @@ def run_gofher_on_galaxy(name, fits_path, bands_in_order, ref_bands_in_order, da
 
     #view_fits(eval_fit,std_range=3,save_path="C:\\Users\\school\\Desktop\\adv_lecture\\ngc3368_sersic_res.png")
     #visualize_map(data=data,pos_mask=pos_mask,neg_mask=neg_mask,el_mask=el_mask,save_path="C:\\Users\\school\\Desktop\\adv_lecture\\ngc3368_masks.png")
-
+    
     pos_side_diff_dict = dict()
     neg_side_diff_dict = dict()
     the_band_pairs = []
@@ -173,6 +179,7 @@ def run_gofher_on_galaxy(name, fits_path, bands_in_order, ref_bands_in_order, da
             band_pair_key = get_key(first_band,base_band)
             the_band_pairs.append(band_pair_key)
 
+            
             diff_image, mask = the_gal.create_diff_image(first_band,base_band,el_mask)
 
             #view_fits(diff_image)
@@ -192,6 +199,7 @@ def run_gofher_on_galaxy(name, fits_path, bands_in_order, ref_bands_in_order, da
 
     #fit gamma distro:
     gamma_dict = run_gamma_fit(pos_side_diff_dict,neg_side_diff_dict)
+    #print(gamma_dict)
     pos_x_dict, neg_x_dict, pos_pdf_point_dict, neg_pdf_point_dict = run_gamma_pdf(gamma_dict,pos_side_diff_dict,neg_side_diff_dict)
 
     #run p-value:
@@ -209,28 +217,55 @@ def run_gofher_on_galaxy(name, fits_path, bands_in_order, ref_bands_in_order, da
                 the_score_dict[band_pair] = 0
     """
     
+    ks_dict = dict()
+    for band_pair in pos_side_diff_dict:
+        pos_side = pos_side_diff_dict[band_pair]
+        neg_side = neg_side_diff_dict[band_pair]
+        pos_mean = np.mean(pos_side)
+        neg_mean = np.mean(neg_side)
 
+        ks_score = ks_2samp(pos_side,neg_side)
+        #entropy_score = entropy(pos_side,neg_side)
+        ks_dict[band_pair] = (ks_score.statistic,ks_score.pvalue)
+        #print(band_pair)
+        #print(ks_score.statistic)
+        #print(ks_score.pvalue)
+        #print(entropy_score)
+
+        #plt.hist(pos_side,bins=30,color='green',alpha=0.5, weights=np.ones_like(pos_side) / len(pos_side))
+        #plt.axvline(pos_mean,color='green',label="{} mean = {:.5f}".format(pl,pos_mean))
+
+        #plt.hist(neg_side ,bins=30,color='red',alpha=0.5, weights=np.ones_like(neg_side) / len(neg_side))
+        #plt.axvline(neg_mean,color='red',label="{} mean = {:.5f}".format(nl, neg_mean))
+        #plt.plot(pos_x_dict[band_pair],pos_pdf_point_dict[band_pair]/pos_pdf_point_dict[band_pair].sum(),c='green',alpha=0.5 ,linestyle='dashed')
+        #plt.plot(neg_x_dict[band_pair],neg_pdf_point_dict[band_pair]/neg_pdf_point_dict[band_pair].sum(),c='red',alpha=0.5 ,linestyle='dashed')
+        #plt.show()
     """
     visualize_hist(the_gal, el_mask, pos_mask, neg_mask, pl, nl,
                    pos_side_diff_dict, neg_side_diff_dict, 
                    mean_diff_dict, the_label_dict, the_score_dict,
                    pos_x_dict, neg_x_dict, pos_pdf_point_dict, neg_pdf_point_dict, 
-                   bands_in_order, dark_side_label, color_image_path, save_path=save_path)
+                   bands_in_order, dark_side_label, color_image_path, save_path=save_path) #save_path=save_pat
     """
     
-    return prepare_csv_row(the_gal,dark_side_label,the_band_pairs, mean_diff_dict, p_value_dict, the_score_dict, pl, nl, the_label_dict)
+    
+    return prepare_csv_row(the_gal,dark_side_label,the_band_pairs, mean_diff_dict, p_value_dict, the_score_dict, pl, nl, the_label_dict, ks_dict)
 
    
 
 
 #for testing:
-path_to_input = "C:\\Users\\school\\Desktop\\github\\spin-parity-catalog\\original\\galaxies\\"
+#path_to_input = "C:\\Users\\school\\Desktop\\github\\spin-parity-catalog\\original\\galaxies\\" #PANSTARRS
+path_to_input = "C:\\Users\\school\\Desktop\\cross_id\\sdss_mosaic_construction" #SDSS
 csv_path = "C:\\Users\\school\\Desktop\\github\\spin-parity-catalog\\table_info\\csv_format_of_table\\"
-folder_name = "table3"
-output_folder = "gofher_test_0_stats_gmean"
+folder_name = "table5"
+output_folder = "gofher_SDSS_mosaic_run_1"
 
-bands_in_order = ['g','r','i','z','y']
-ref_bands_in_order = ['i','z','y','r','g']
+#bands_in_order = ['g','r','i','z','y'] #PANSTARRS
+#ref_bands_in_order = ['i','z','y','r','g']  #PANSTARRS
+
+bands_in_order = ['u','g','r','i','z'] #SDSS
+ref_bands_in_order = ['r','i','g','z','u'] #SDSS
 
 def fits_path(name,band):
     return os.path.join(path_to_input,folder_name,name,"{}_{}.fits".format(name,band))
@@ -239,10 +274,14 @@ def get_galaxy_list():
     return os.listdir(os.path.join(path_to_input,folder_name))
 
 def color_image_path(name):
-    return os.path.join(path_to_input,folder_name,name,"{}_color.jfif".format(name))
+    #return os.path.join(path_to_input,folder_name,name,"{}_color.jfif".format(name))
+    return os.path.join(path_to_input,folder_name,name,"{}_color.png".format(name))
 
 def get_csv_path():
     return os.path.join(csv_path,"table_{}.csv".format(folder_name.strip()[-1]))
+
+def get_cross_path():
+    return os.path.join("C:\\Users\\school\\Desktop\\cross_id","{}.txt".format(folder_name)) #SDSS
 
 def get_save_hist_path(name):
     return "C:\\Users\\school\\Desktop\\gofher_output\\{}\\{}\\{}.png".format(output_folder,folder_name,name)
@@ -264,23 +303,27 @@ plt.imshow(image_data,origin='lower')
 """
 
 if __name__ == "__main__":
+    dark_side_labels, cross_id = read_spin_parity_galaxies_label_from_csv_sdss(get_csv_path(),get_cross_path())
     dark_side_labels = read_spin_parity_galaxies_label_from_csv(get_csv_path())
     the_band_pairs, the_csv_cols = get_csv_cols(bands_in_order)
     the_csv_rows = []
     i = 1
-    #for name in get_galaxy_list():
-    for name in ['NGC1']: #NGC3368
-        #try:
-        if True:
+    for name in get_galaxy_list():
+    #print(cross_id)
+    #for name in ['1237668623014952982']:
+        try:
             print(i,name)
-            csv_row = run_gofher_on_galaxy(name, fits_path, bands_in_order, ref_bands_in_order, dark_side_labels[name], save_path=get_save_hist_path(name))
+            #if name not in cross_id: continue
+            dark_label_for_gal = dark_side_labels[name] #SDSS #dark_side_labels[name]
+            #print(cross_id[name])
+            csv_row = run_gofher_on_galaxy(name, fits_path, bands_in_order, ref_bands_in_order, dark_label_for_gal, save_path=get_save_hist_path(name))
+            #csv_row = run_gofher_on_galaxy(name, fits_path, bands_in_order, ref_bands_in_order, dark_label_for_gal, save_path=get_save_hist_path(cross_id[name]))
+            #csv_row[0] = cross_id[name]
             the_csv_rows.append(csv_row)
             i += 1
-            #if i > 3:
-            #    break
-        #except Exception as e:
-        #    print(e)
-
+            #break
+        except Exception as e:
+            print(e)
+            #break
     if True:
-        #write_csv(get_csv_out_path(),the_csv_cols,the_csv_rows)
-        pass
+        write_csv(get_csv_out_path(),the_csv_cols,the_csv_rows)

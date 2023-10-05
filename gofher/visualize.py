@@ -1,8 +1,11 @@
 import itertools
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from fits import write_fits
+
+from astropy.visualization import make_lupton_rgb
 
 #for lecture:
 from gofher import normalize_array
@@ -16,6 +19,67 @@ PANSTARRS_COLOR_DICT = {'g':'green',
 DEFAULT_POSITIVE_RGB_VECTOR = [60/255,179/255,113/255] #mediumseagreen
 DEFAULT_NEGATIVE_RGB_VECTOR = [240/255,128/255,125/255] #lightcoral
 DEFAULT_BAD_PIXEL_RGB_VECTOR = [169/255,169/255,169/255] #lightgrey
+
+#for scaling created color sdss:
+def img_scale_sqrt(inputArray, scale_min=None, scale_max=None):
+	"""Performs sqrt scaling of the input numpy array.
+
+	@type inputArray: numpy array
+	@param inputArray: image data array
+	@type scale_min: float
+	@param scale_min: minimum data value
+	@type scale_max: float
+	@param scale_max: maximum data value
+	@rtype: numpy array
+	@return: image data array
+	
+	"""		
+    
+	#print "img_scale : sqrt"
+	imageData=np.array(inputArray, copy=True)
+	
+	if scale_min == None:
+		scale_min = imageData.min()
+	if scale_max == None:
+		scale_max = imageData.max()
+
+	imageData = imageData.clip(min=scale_min, max=scale_max)
+	imageData = imageData - scale_min
+	indices = np.where(imageData < 0)
+	imageData[indices] = 0.0
+	imageData = np.sqrt(imageData)
+	imageData = imageData / math.sqrt(scale_max - scale_min)
+	
+	return imageData
+
+def img_scale_linear(inputArray, scale_min=None, scale_max=None):
+	"""Performs linear scaling of the input numpy array.
+
+	@type inputArray: numpy array
+	@param inputArray: image data array
+	@type scale_min: float
+	@param scale_min: minimum data value
+	@type scale_max: float
+	@param scale_max: maximum data value
+	@rtype: numpy array
+	@return: image data array
+	
+	"""
+	imageData=np.array(inputArray, copy=True)
+	
+	if scale_min == None:
+		scale_min = imageData.min()
+	if scale_max == None:
+		scale_max = imageData.max()
+
+	imageData = imageData.clip(min=scale_min, max=scale_max)
+	imageData = (imageData -scale_min) / (scale_max - scale_min)
+	indices = np.where(imageData < 0)
+	imageData[indices] = 0.0
+	indices = np.where(imageData > 1)
+	imageData[indices] = 1.0
+	
+	return imageData
 
 def create_color_map_class(pos,neg,el):
     cmap_class = np.ones((pos.shape[0],pos.shape[1],3))*DEFAULT_BAD_PIXEL_RGB_VECTOR
@@ -79,6 +143,18 @@ def visualize_single_hist(data,pos_mask,neg_mask,el_mask,diff):
     plt.savefig("C:\\Users\\school\\Desktop\\adv_lecture\\ngc3368_diff.png")
     plt.clf()
 
+def consruct_color_image(i, r, g, mask):
+    #img = np.zeros((mask.shape[0], mask.shape[1], 3), dtype=float)
+
+    #img[:,:,0] = r/np.max(r)
+    #img[:,:,1] = g/np.max(g)
+    #img[:,:,2] = b/np.max(b)
+
+    #https://docs.astropy.org/en/stable/visualization/rgb.html#creating-color-rgb-images-using-the-lupton-et-al-2004-scheme
+    #https://docs.astropy.org/en/stable/api/astropy.visualization.make_lupton_rgb.html
+    
+    return make_lupton_rgb(i, r, g)*np.zeros((mask.shape[0], mask.shape[1], 3), dtype=float)
+
 def get_key(first,base):
     return "{}-{}".format(first,base)
 
@@ -124,8 +200,32 @@ def visualize_hist(the_gal, el_mask, pos_mask, neg_mask, pl, nl, pos_side_diff_d
         axd[band_pair].legend()
     
     #color:
+    
+    #for PANSTARRS
     color = mpimg.imread(color_image_path(the_gal.name))
+    print(color_image_path(the_gal.name))
     axd['color'].imshow(color)
+    
+    #for SDSS
+    #https://www.astrobetter.com/blog/2010/10/22/making-rgb-images-from-fits-files-with-pythonmatplotlib/
+    #'g','r','i'
+    """
+    g_img = the_gal.data['g']*the_gal.valid_pixel_mask['g']
+    r_img = the_gal.data['r']*the_gal.valid_pixel_mask['r']
+    i_img = the_gal.data['i']*the_gal.valid_pixel_mask['i']
+    the_mask = el_mask
+    img = np.zeros((g_img.shape[0], g_img.shape[1], 3), dtype=float)
+    #img[:,:,0] = img_scale_sqrt(g_img, scale_min=0, scale_max=10000)
+    #img[:,:,1] = img_scale_sqrt(r_img, scale_min=0, scale_max=10000)
+    #img[:,:,2] = img_scale_sqrt(i_img, scale_min=0, scale_max=10000)
+    img[:,:,0] = g_img/np.max(g_img)
+    img[:,:,0] = r_img/np.max(r_img)
+    img[:,:,0] = i_img/np.max(i_img)
+
+    #img = consruct_color_image(the_gal.data['i'],the_gal.data['r'],the_gal.data['g'],el_mask)
+    """
+    #m, s = np.mean(r_img), np.std(r_img)
+    #axd['color'].imshow(img, interpolation='nearest', cmap='gray', origin='lower')
     axd['color'].set_title("{}: dark side {}".format(the_gal.name,dark_side_label))
     
     data = the_gal.data[the_gal.ref_band]
@@ -141,8 +241,10 @@ def visualize_hist(the_gal, el_mask, pos_mask, neg_mask, pl, nl, pos_side_diff_d
     
     if save_path != "":
         fig.savefig(save_path, dpi = 300, bbox_inches='tight')
+
     else:
         plt.show()
     fig.clear()
     plt.close(fig)
+    
     #plt.close('all') #possible memory leak

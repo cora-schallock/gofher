@@ -25,6 +25,19 @@ def read_spin_parity_galaxies_label_from_csv(csv_path):
 
     return galaxy_name_to_dark_side_dict
 
+def read_spin_parity_galaxies_label_from_csv_sdss(csv_path,cross_path):
+    cross_id = dict()
+    with open(cross_path,'r') as f:
+        first = True
+        for lines in f.readlines():
+            if first:
+                first = False
+                continue
+            to_parse = lines.split("\t")
+            cross_id[to_parse[1]] = to_parse[0]
+    
+    return read_spin_parity_galaxies_label_from_csv(csv_path), cross_id
+
 def pos_neg_label_from_theta(theta):
     new_theta = theta % 360
     pos = '-'

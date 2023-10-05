@@ -34,6 +34,7 @@ class galaxy:
         return create_ellipse_mask(self.x,self.y,self.a,self.b,ellipse_theta,r=r,shape=self.data[self.ref_band].shape)
     
     def create_diff_image(self,first_band,base_band,area_to_diff):
+        ##print(self.data[self.ref_band].shape,self.valid_pixel_mask[first_band].shape,self.valid_pixel_mask[base_band].shape,area_to_diff.shape)
         to_diff_mask = np.logical_and(area_to_diff,np.logical_and(self.valid_pixel_mask[first_band],self.valid_pixel_mask[base_band]))
         diff_image = create_diff_image(self.data[first_band],self.data[base_band],to_diff_mask)
         return diff_image, to_diff_mask
