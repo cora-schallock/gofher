@@ -3,10 +3,13 @@ import numpy as np
 from skimage import measure
 import matplotlib.pyplot as plt
 from fits import view_fits
-from run_fit import calculate_dist
+#from run_fit import calculate_dist
 
 def the_avg(x):
     return np.sum(x)/len(x)
+
+def calculate_dist(cm,center):
+    return np.linalg.norm(np.array(cm)-np.array(center))
 
 import scipy
 import numpy as np

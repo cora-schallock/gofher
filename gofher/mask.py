@@ -19,6 +19,9 @@ def create_ellipse_mask(x,y,a,b,theta,r=1.0,shape=None,arr=None):
 
     return arr
 
+def create_ellipse_mask_from_gofher_params(the_params,the_shape,r=1.0):
+    return create_ellipse_mask(the_params.x,the_params.y,the_params.a,the_params.b,the_params.theta,r,the_shape)
+
 def create_bisection_mask(x,y,theta,shape):
     """create two bisection masks"""
     disk_angle_matrix = create_disk_angle_matrix(x,y,theta,shape)
@@ -26,6 +29,9 @@ def create_bisection_mask(x,y,theta,shape):
     neg_mask = (disk_angle_matrix>=np.pi)
     
     return (pos_mask, neg_mask)
+
+def create_bisection_mask_from_gofher_params(the_params,shape):
+    return create_bisection_mask(the_params.x,the_params.y,the_params.theta,shape)
 
 def clean_mask(mask,min_size=64,connectivity=1):
     """clean mask by removing small noise"""

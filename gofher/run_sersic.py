@@ -9,7 +9,7 @@ import scipy
 from skimage import color, morphology
 
 from bright_spot import create_bright_spot_mask, combine_spot_and_star_mask, find_mask_spot_closest_to_center
-from run_fit import run_cutom_segmentation #fit_ellipse_to_mask,
+#from run_fit import run_cutom_segmentation #fit_ellipse_to_mask,
 
 from fits import view_fits
 
@@ -37,12 +37,13 @@ def inital_amplitude(data, r_eff, x, y, ellip, theta):
     
     return amplitude
 
-def fit_sersic(data, r_eff, x, y, a, b, theta, to_fit_sersic_mask, inital_n=4,center_buffer=10,theta_buffer=np.pi/6):
+def fit_sersic(data, r_eff, x, y, a, b, theta, to_fit_sersic_mask, inital_n=4):
     #Step 1) Find inital params for sersic:
     ellip = inital_ellipticity(a,b)
     amplitude = inital_amplitude(data, r_eff, x, y, ellip, theta)
 
     #Step 2) Set inital sersic with inintal params (and bounds):
+    """
     sersic_model_init = models.Sersic2D(
         amplitude=amplitude,
         r_eff=r_eff,
@@ -60,6 +61,15 @@ def fit_sersic(data, r_eff, x, y, a, b, theta, to_fit_sersic_mask, inital_n=4,ce
             'theta': (theta-theta_buffer, theta+theta_buffer),
             'x_0': (x - center_buffer/2, x + center_buffer/2),
             'y_0': (y - center_buffer/2, y + center_buffer/2)})
+    """
+    sersic_model_init = models.Sersic2D(
+        amplitude=amplitude,
+        r_eff=r_eff,
+        n=inital_n,
+        x_0=x,
+        y_0=y,
+        ellip=ellip,
+        theta=theta)
 
     #Step 3) Fit model to grid:
     y_arange, x_arange = np.where(to_fit_sersic_mask)

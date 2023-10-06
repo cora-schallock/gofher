@@ -8,7 +8,7 @@ from fits import write_fits
 from astropy.visualization import make_lupton_rgb
 
 #for lecture:
-from gofher import normalize_array
+#from gofher import normalize_array
 
 PANSTARRS_COLOR_DICT = {'g':'green',
                         'r':'red',

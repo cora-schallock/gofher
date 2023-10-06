@@ -4,6 +4,9 @@ from astropy.io import fits
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
+class InvalidFitsPath(Exception):
+    pass
+
 def is_fits_path_valid(fits_path):
     return os.path.isfile(fits_path) and os.path.splitext(fits_path)[-1].lower() == ".fits" #https://stackoverflow.com/a/5900590/13544635
 

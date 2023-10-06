@@ -1,5 +1,4 @@
 import numpy as np
-
 import pandas as pd
 
 # NOTE: this should match csv label data
@@ -37,6 +36,7 @@ def read_spin_parity_galaxies_label_from_csv_sdss(csv_path,cross_path):
             cross_id[to_parse[1]] = to_parse[0]
     
     return read_spin_parity_galaxies_label_from_csv(csv_path), cross_id
+
 
 def pos_neg_label_from_theta(theta):
     new_theta = theta % 360
