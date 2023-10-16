@@ -6,6 +6,7 @@ from skimage.morphology import remove_small_objects
 from matrix import create_disk_angle_matrix
 
 def create_valid_pixel_mask(data):
+    """create a mask that only contains not infinite non nan pixels"""
     return np.logical_not(np.logical_or(np.isinf(data),np.isnan(data)))
 
 def create_ellipse_mask(x,y,a,b,theta,r=1.0,shape=None,arr=None):
@@ -20,6 +21,7 @@ def create_ellipse_mask(x,y,a,b,theta,r=1.0,shape=None,arr=None):
     return arr
 
 def create_ellipse_mask_from_gofher_params(the_params,the_shape,r=1.0):
+    """using gofher_params specifying an ellipse create an ellipse mask"""
     return create_ellipse_mask(the_params.x,the_params.y,the_params.a,the_params.b,the_params.theta,r,the_shape)
 
 def create_bisection_mask(x,y,theta,shape):
@@ -31,27 +33,5 @@ def create_bisection_mask(x,y,theta,shape):
     return (pos_mask, neg_mask)
 
 def create_bisection_mask_from_gofher_params(the_params,shape):
+    """using gofher_params create a bisection mask"""
     return create_bisection_mask(the_params.x,the_params.y,the_params.theta,shape)
-
-def clean_mask(mask,min_size=64,connectivity=1):
-    """clean mask by removing small noise"""
-    return remove_small_objects(mask.astype(bool),min_size,connectivity)
-
-def create_foreground_mask(data,min_area_frac=0.0625,connectivity=9):
-    """create a cleaned foreground mask"""
-    #Step 1) calculate clipped stats:
-    image_mean, image_median, image_stddev = sigma_clipped_stats(data, sigma=3) #estimate background with astropy
-
-    #Step 2) select foreground based on clipped stats
-    foreground = data >= image_mean+image_stddev
-    
-    #Step 3) clean foreground
-    min_size = data.shape[0]*data.shape[1]*min_area_frac
-    return clean_mask(foreground,min_size,connectivity)
-
-def create_segmentation_masks(data):
-    """cretae a foreground and background mask"""
-    foreground_mask = create_foreground_mask(data)
-    background_mask = np.logical_not(foreground_mask)
-
-    return (foreground_mask,background_mask)

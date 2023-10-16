@@ -1,17 +1,17 @@
 import scipy
 import numpy as np
 from skimage import measure
+import matplotlib.pyplot as plt
 from scipy.stats import expon
+import copy
 
 from sep_helper import run_sep
 from mask import create_ellipse_mask_from_gofher_params
 
-#for testing:
-import matplotlib.pyplot as plt
-from visualize import create_color_map_class
-from run_sersic import fit_sersic,evaluate_sersic_model
+from run_sersic import fit_sersic
 
 class gofher_parameters:
+    """Contains gofher ellipse parameters"""
     def __init__(self):
         self.x = 0.0
         self.y = 0.0
@@ -27,6 +27,7 @@ class gofher_parameters:
         self.theta = sep_object['theta']
 
 def calculate_dist(cm,center):
+    """Distance norm"""
     return np.linalg.norm(np.array(cm)-np.array(center))
 
 def normalize_array(data,to_diff_mask):
@@ -46,6 +47,7 @@ def create_diff_image(first_data,base_data,to_diff_mask):
     return first_norm-base_norm
 
 def find_mask_spot_closest_to_center(the_mask,approx_center):
+    """Locate spots in mask, and mask out all that are not center most"""
     shape=the_mask.shape
     all_labels = measure.label(the_mask) #https://scipy-lectures.org/packages/scikit-image/auto_examples/plot_labels.html
     blobs_labels = measure.label(all_labels, background=0)
@@ -56,14 +58,16 @@ def find_mask_spot_closest_to_center(the_mask,approx_center):
 
     return blobs_labels==unique[np.argmin(dist_to_center)]
 
-def get_gopher_params_from_sersic_fit(inital_gofher_parameters,data,mask_to_fit):
+def get_gopher_params_from_sersic_fit(inital_gofher_parameters,data,mask_to_fit,sigma=None):
+    """Fit a sersic to galaxy and extract ellipse params from it"""
     sersic_model = fit_sersic(data, inital_gofher_parameters.b*0.5, 
                inital_gofher_parameters.x,
                inital_gofher_parameters.y,
                inital_gofher_parameters.a,
                inital_gofher_parameters.b,
                inital_gofher_parameters.theta,
-               mask_to_fit)
+               mask_to_fit,
+               sigma_clip_for_fitting=sigma)
     
     sersic_output_gofher_params = gofher_parameters()
     sersic_output_gofher_params.x = getattr(sersic_model,'x_0').value
@@ -72,9 +76,10 @@ def get_gopher_params_from_sersic_fit(inital_gofher_parameters,data,mask_to_fit)
     return sersic_output_gofher_params
 
 def run_gofher_on_galaxy(the_gal,the_band_pairs):
+    """Figure out which side is closer given diffenetial extinction reddening location"""
     #Step 1: Setup inital necessary variables:
     inital_gofher_parameters = gofher_parameters()
-    data = the_gal[the_gal.ref_band].data
+    data = copy.deepcopy(the_gal[the_gal.ref_band].data)
     shape = the_gal.get_shape()
 
     #Step 2: Run Sep on ref_band and find inital_gofher_parameters
@@ -97,7 +102,13 @@ def run_gofher_on_galaxy(the_gal,the_band_pairs):
     #Step 5: Create a mask that only includes pixels in which there is a higher probability that it in inside the inital ellipse compared to the probability it is outside the ellipse
     the_mask = pdf_out < pdf_in
 
+    center_mask = find_mask_spot_closest_to_center(the_mask,(cm_x, cm_y))
+    bright_spot_mask = np.logical_and(the_mask,np.logical_not(center_mask))
+
+    the_mask = np.logical_and(center_mask,the_gal[the_gal.ref_band].valid_pixel_mask)
+
     #Step 6: Try fitting sersic:
+    #if True:
     try:
         the_sersic_mask = np.logical_and(the_mask,the_gal[the_gal.ref_band].valid_pixel_mask)
         the_gal.gofher_params = get_gopher_params_from_sersic_fit(inital_gofher_parameters,data,the_sersic_mask)
@@ -106,6 +117,7 @@ def run_gofher_on_galaxy(the_gal,the_band_pairs):
     except:
         print("Error fitting sersic, using inital_gofher_parameters from sep")
         the_gal.gofher_params = inital_gofher_parameters
+        the_gal.encountered_sersic_fit_error = True
 
     #Step 7: Now run gofher!
     the_gal.run_gofher(the_band_pairs)

@@ -8,20 +8,22 @@ import matplotlib.pyplot as plt
 import scipy
 from skimage import color, morphology
 
-from bright_spot import create_bright_spot_mask, combine_spot_and_star_mask, find_mask_spot_closest_to_center
 #from run_fit import run_cutom_segmentation #fit_ellipse_to_mask,
 
 from fits import view_fits
 
 def evaluate_sersic_model(sersic_model, shape):
+    """evaluate sersic model"""
     x,y = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]))
     return sersic_model(x,y)
 
 def inital_ellipticity(a,b):
+    """calculate inital ellipticity"""
     #The ellipticity: e = 1 − b/a #https://iopscience.iop.org/article/10.3847/0004-637X/824/2/112
     return 1 - (b/a)
 
 def inital_amplitude(data, r_eff, x, y, ellip, theta):
+    """calculate inital amplitude of data"""
     #https://petrofit.readthedocs.io/en/latest/fitting.html#AstroPy-S%C3%A9rsic-Model
     #return get_amplitude_at_r(r_eff, data, x, y, e, theta)
     g = EllipseGeometry(x, y, 1., ellip, theta)
@@ -37,13 +39,14 @@ def inital_amplitude(data, r_eff, x, y, ellip, theta):
     
     return amplitude
 
-def fit_sersic(data, r_eff, x, y, a, b, theta, to_fit_sersic_mask, inital_n=4):
+def fit_sersic(data, r_eff, x, y, a, b, theta, to_fit_sersic_mask, inital_n=4, sigma_clip_for_fitting=None,center_buffer=6,theta_buffer=np.pi/16):
+    """fit a sersic model to the data provided that is bounded"""
     #Step 1) Find inital params for sersic:
     ellip = inital_ellipticity(a,b)
     amplitude = inital_amplitude(data, r_eff, x, y, ellip, theta)
 
     #Step 2) Set inital sersic with inintal params (and bounds):
-    """
+    
     sersic_model_init = models.Sersic2D(
         amplitude=amplitude,
         r_eff=r_eff,
@@ -61,6 +64,8 @@ def fit_sersic(data, r_eff, x, y, a, b, theta, to_fit_sersic_mask, inital_n=4):
             'theta': (theta-theta_buffer, theta+theta_buffer),
             'x_0': (x - center_buffer/2, x + center_buffer/2),
             'y_0': (y - center_buffer/2, y + center_buffer/2)})
+    
+    
     """
     sersic_model_init = models.Sersic2D(
         amplitude=amplitude,
@@ -70,8 +75,15 @@ def fit_sersic(data, r_eff, x, y, a, b, theta, to_fit_sersic_mask, inital_n=4):
         y_0=y,
         ellip=ellip,
         theta=theta)
+    """
 
     #Step 3) Fit model to grid:
+    if sigma_clip_for_fitting != None:
+        mean = np.mean(data[to_fit_sersic_mask])
+        sig = np.std(data[to_fit_sersic_mask])
+        in_range_mask = (mean-sigma_clip_for_fitting*sig<data)&(data<mean+sigma_clip_for_fitting*sig)
+        to_fit_sersic_mask = np.logical_and(to_fit_sersic_mask,in_range_mask)
+
     y_arange, x_arange = np.where(to_fit_sersic_mask)
     z = data[(y_arange, x_arange)]
     fitter = fitting.LevMarLSQFitter()

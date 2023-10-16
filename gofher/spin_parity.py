@@ -12,6 +12,7 @@ REFERENCE = "ref"
 FOUND = "dis"
 
 def read_spin_parity_galaxies_label_from_csv(csv_path):
+    """read in the spin parity csv"""
     the_csv = pd.read_csv(csv_path)
 
     galaxy_name_to_dark_side_dict = dict()
@@ -25,6 +26,7 @@ def read_spin_parity_galaxies_label_from_csv(csv_path):
     return galaxy_name_to_dark_side_dict
 
 def read_spin_parity_galaxies_label_from_csv_sdss(csv_path,cross_path):
+    """read in the spin parity with cross ids"""
     cross_id = dict()
     with open(cross_path,'r') as f:
         first = True
@@ -39,6 +41,7 @@ def read_spin_parity_galaxies_label_from_csv_sdss(csv_path,cross_path):
 
 
 def pos_neg_label_from_theta(theta):
+    """get pos/neg label from theta"""
     new_theta = theta % 360
     pos = '-'
     neg = '-'
@@ -70,37 +73,3 @@ def pos_neg_label_from_theta(theta):
         pos = 'n'
         neg = 's'
     return pos.upper(),neg.upper()
-
-def score(dark,pl,nl,mean_dif):
-    label = nl if -np.sign(mean_dif) == 1.0 else pl
-    opposite = pl if -np.sign(mean_dif) == 1.0 else nl
-
-    correct_label_letter_count = len(set([*label.lower()]).union([*dark.lower()]))
-    incorrect_label_letter_count = len(set([*opposite.lower()]).union([*dark.lower()]))
-        
-    if correct_label_letter_count > incorrect_label_letter_count and correct_label_letter_count > 1:
-        return 1
-    elif incorrect_label_letter_count > correct_label_letter_count and incorrect_label_letter_count > 1:
-        return -1
-    else:
-        return 0
-
-def classify_spin_parity(the_gal,dark_side_label,pos_diff_dict,neg_diff_dict):
-    pl, nl = pos_neg_label_from_theta(np.degrees(the_gal.theta))
-    mean_diff_dict = dict()
-    the_score_dict = dict()
-    the_label_dict = dict()
-    
-    for band_pair in pos_diff_dict.keys():
-        pos_mean = np.mean(pos_diff_dict[band_pair])
-        neg_mean = np.mean(neg_diff_dict[band_pair])
-        
-        mean_dif = pos_mean-neg_mean
-        mean_diff_dict[band_pair] = mean_dif
-        
-        the_label = nl if -np.sign(mean_dif) == -1.0 else pl
-        the_label_dict[band_pair] = the_label
-        
-        the_score = score(dark_side_label,pl,nl,mean_dif)
-        the_score_dict[band_pair] = the_score
-    return mean_diff_dict, the_label_dict, the_score_dict, pl, nl

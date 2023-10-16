@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
 class InvalidFitsPath(Exception):
+    """Exception for invalid fits path"""
     pass
 
 def is_fits_path_valid(fits_path):
+    """Check if there exists a valid fits path"""
     return os.path.isfile(fits_path) and os.path.splitext(fits_path)[-1].lower() == ".fits" #https://stackoverflow.com/a/5900590/13544635
 
 #fits: i/o:

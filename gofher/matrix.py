@@ -2,6 +2,7 @@ import numpy as np
 
 #helper functions:
 def create_centered_mesh_grid(h,k,shape):
+    """Create two meshes whose center (0) is specific be h,k"""
     (rows,cols) = shape
     x=np.arange(0,cols)-h 
     y=np.arange(0,rows)-k
@@ -10,9 +11,11 @@ def create_centered_mesh_grid(h,k,shape):
     return xv, yv
 
 def create_angle_matrix(xv,yv,theta):
+    """creates an array where each pixel if the angle from theta"""
     return np.arctan2(yv,xv)-theta
 
 def create_dist_matrix(xv,yv):
+    """creates an array where each pixel is the distance from the pixel xv,yv"""
     return np.sqrt(xv**2 + yv**2)
 
 def create_disk_angle_matrix(h,k,theta,shape):
