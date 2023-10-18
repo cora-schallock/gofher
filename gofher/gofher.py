@@ -123,3 +123,32 @@ def run_gofher_on_galaxy(the_gal,the_band_pairs):
     the_gal.run_gofher(the_band_pairs)
 
     return the_gal
+
+def run_gofher_on_galaxy_with_fixed_gofher_parameters(the_gal,the_band_pairs,fixed_gofher_params):
+    the_gal.gofher_params = fixed_gofher_params
+    #print(the_band_pairs)
+    the_gal.run_gofher(the_band_pairs)
+
+    return the_gal
+
+def run_gofher_on_galaxy_with_fixed_center_only(the_gal,the_band_pairs,fixed_gofher_params):
+    """Figure out which side is closer given diffenetial extinction reddening location"""
+    #Step 1: Setup inital necessary variables:
+    inital_gofher_parameters = gofher_parameters()
+    data = copy.deepcopy(the_gal[the_gal.ref_band].data)
+    shape = the_gal.get_shape()
+
+    #Step 2: Run Sep on ref_band and find inital_gofher_parameters
+    (cm_x, cm_y) = (shape[1]*0.5, shape[0]*0.5)
+    the_el_sep, mu_bkg = run_sep(data, cm_x, cm_y)
+    inital_gofher_parameters.load_from_sep_object(the_el_sep)
+
+    #Step 3: Manually Fix center:
+    inital_gofher_parameters.x = fixed_gofher_params.x
+    inital_gofher_parameters.y = fixed_gofher_params.y
+    the_gal.gofher_params = inital_gofher_parameters
+
+    #Step 4: Now run gofher!
+    the_gal.run_gofher(the_band_pairs)
+
+    return the_gal
