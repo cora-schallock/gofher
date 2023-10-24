@@ -2,10 +2,13 @@ import itertools
 import os
 
 from galaxy import galaxy
-from gofher import run_gofher_on_galaxy, run_gofher_on_galaxy_with_fixed_gofher_parameters, run_gofher_on_galaxy_with_fixed_center_only
+from gofher import run_gofher_on_galaxy, run_gofher_on_galaxy_with_fixed_gofher_parameters, run_gofher_on_galaxy_with_fixed_center_only,run_gofher_on_galaxy_with_sparcfire_center_inital_guess
 from sparcfire import get_ref_band_and_gofher_params
 from sdss import visualize_sdss, SDSS_BANDS_IN_ORDER, SDSS_REF_BANDS_IN_ORDER
 from panstarrs import visualize_panstarrs, PANSTARRS_BANDS_IN_ORDER, PANSTARRS_REF_BANDS_IN_ORDER
+
+#test:
+import matplotlib.pyplot as plt
 
 def run_sdss(name, fits_path, save_vis_path='', dark_side_label=''):
     """run gofher on a single sdss galaxy"""
@@ -89,3 +92,30 @@ def run_panstarrs_with_sparcfire_center_only(name, fits_path, sparcfire_bands, s
     if save_vis_path != '':
         visualize_panstarrs(the_gal,save_vis_path,color_image_path)
     return the_gal
+
+def run_panstarrs_on_galaxy_with_sparcfire_center_inital_guess(name, fits_path, sparcfire_bands, save_vis_path='', dark_side_label='', color_image_path=''):
+    """run gofher on a single sdss galaxy"""
+    the_gal = galaxy(name,dark_side_label)
+
+    for band in PANSTARRS_BANDS_IN_ORDER:
+        the_gal.construct_band(band,fits_path(name,band))
+
+    the_ref_band, the_sparcfire_derived_params = get_ref_band_and_gofher_params(sparcfire_bands,PANSTARRS_REF_BANDS_IN_ORDER)
+    if the_ref_band == None or the_sparcfire_derived_params == None: return
+
+    the_gal.ref_band = the_ref_band
+    the_band_pairs = list(itertools.combinations(PANSTARRS_BANDS_IN_ORDER, 2))
+
+    the_gal = run_gofher_on_galaxy_with_sparcfire_center_inital_guess(the_gal,the_band_pairs,the_sparcfire_derived_params)
+
+    for each_band_pair_key in the_gal.band_pairs:
+        the_band_pair = the_gal.get_band_pair(each_band_pair_key)
+        plt.imshow(the_band_pair.diff_image,origin='lower')
+        plt.show()
+
+    """
+    if save_vis_path != '':
+        visualize_panstarrs(the_gal,save_vis_path,color_image_path)
+    return the_gal
+    """
+

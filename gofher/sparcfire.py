@@ -81,7 +81,7 @@ def load_sparcfire_dict(band_dict):
 def get_ref_band_and_gofher_params(sparcfire_bands,ref_bands_in_order):
     for band in ref_bands_in_order:
         if band not in sparcfire_bands: continue
-
+        
         the_params = load_sparcfire_dict(sparcfire_bands[band])
         if not isinstance(the_params,gofher_parameters): continue
 

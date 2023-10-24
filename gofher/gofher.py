@@ -152,3 +152,55 @@ def run_gofher_on_galaxy_with_fixed_center_only(the_gal,the_band_pairs,fixed_gof
     the_gal.run_gofher(the_band_pairs)
 
     return the_gal
+
+def run_gofher_on_galaxy_with_sparcfire_center_inital_guess(the_gal,the_band_pairs,fixed_gofher_params):
+    #Step 1: Setup inital necessary variables:
+    inital_gofher_parameters = gofher_parameters()
+    data = copy.deepcopy(the_gal[the_gal.ref_band].data)
+    shape = the_gal.get_shape()
+
+    #Step 2: Run Sep on ref_band and find inital_gofher_parameters
+    (cm_x, cm_y) = (shape[1]*0.5, shape[0]*0.5)
+    the_el_sep, mu_bkg = run_sep(data, cm_x, cm_y)
+    inital_gofher_parameters.load_from_sep_object(the_el_sep)
+
+    #Step 3: Manually Fix center:
+    inital_gofher_parameters.x = fixed_gofher_params.x
+    inital_gofher_parameters.y = fixed_gofher_params.y
+    
+    #Step 4: Create an ellipse mask using the inital_gofher_parameters
+    el_mask = create_ellipse_mask_from_gofher_params(inital_gofher_parameters,shape,r=1.0)
+
+    #Step 5: Using the inital_gofher_parameters fit two pdfs pdf_in (probability inside ellipse) and pdf_out (probability outside ellipse)
+    inside_ellipse = data[np.logical_and(el_mask,the_gal[the_gal.ref_band].valid_pixel_mask)].flatten()
+    loc, scale = expon.fit(inside_ellipse) #https://stackoverflow.com/questions/25085200/scipy-stats-expon-fit-with-no-location-parameter
+    pdf_in = expon.pdf(data, loc=loc, scale=scale)
+
+    outside_ellipse = data[np.logical_and(np.logical_not(el_mask),the_gal[the_gal.ref_band].valid_pixel_mask)].flatten()
+    loc, scale = expon.fit(outside_ellipse) #https://stackoverflow.com/questions/25085200/scipy-stats-expon-fit-with-no-location-parameter
+    pdf_out = expon.pdf(data, loc=loc, scale=scale)
+
+    #Step 6: Create a mask that only includes pixels in which there is a higher probability that it in inside the inital ellipse compared to the probability it is outside the ellipse
+    the_mask = pdf_out < pdf_in
+
+    center_mask = find_mask_spot_closest_to_center(the_mask,(cm_x, cm_y))
+    bright_spot_mask = np.logical_and(the_mask,np.logical_not(center_mask))
+
+    the_mask = np.logical_and(center_mask,the_gal[the_gal.ref_band].valid_pixel_mask)
+
+    #Step 7: Try fitting sersic:
+    #if True:
+    try:
+        the_sersic_mask = np.logical_and(the_mask,the_gal[the_gal.ref_band].valid_pixel_mask)
+        the_gal.gofher_params = get_gopher_params_from_sersic_fit(inital_gofher_parameters,data,the_sersic_mask)
+        the_gal.gofher_params.a = the_el_sep['a']
+        the_gal.gofher_params.b = the_el_sep['b']
+    except:
+        print("Error fitting sersic, using inital_gofher_parameters from sep")
+        the_gal.gofher_params = inital_gofher_parameters
+        the_gal.encountered_sersic_fit_error = True
+
+    #Step 8: Now run gofher!
+    the_gal.run_gofher(the_band_pairs)
+
+    return the_gal
