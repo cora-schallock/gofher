@@ -16,8 +16,8 @@ def create_sdss_csv(gals,the_band_pairs,csv_path):
     """create an csv containing the information from gofher of the given galaxies"""
     #Construct CSV header:
     csv_column_headers = ['name','dark_side_label','pos_side_label','neg_side_label','ref_band','encounted_sersic_error']
-    #per_band_column_headers = ['pos_side_mean','pos_side_std','neg_side_mean','neg_side_std','D','P','label','score']
-    per_band_column_headers = ['pos_side_mean','pos_side_std','neg_side_mean','neg_side_std','D','P','label','score','pos_side_data','neg_side_data']
+    per_band_column_headers = ['pos_side_mean','pos_side_std','neg_side_mean','neg_side_std','D','P','label','score']
+    #per_band_column_headers = ['pos_side_mean','pos_side_std','neg_side_mean','neg_side_std','D','P','label','score','pos_side_data','neg_side_data']
 
     for band_pair in the_band_pairs:
         band_pair_key = construct_band_pair_key(band_pair[0],band_pair[1])
@@ -34,7 +34,7 @@ def create_sdss_csv(gals,the_band_pairs,csv_path):
         for band_pair in the_band_pairs:
             band_pair_key = construct_band_pair_key(band_pair[0],band_pair[1])
             the_band_pair = gal.get_band_pair(band_pair_key)
-            """
+            
             the_row.extend([the_band_pair.pos_fit_norm_mean,the_band_pair.pos_fit_norm_std,
                             the_band_pair.neg_fit_norm_mean,the_band_pair.neg_fit_norm_std,
                             the_band_pair.d_stat, the_band_pair.p_value,
@@ -49,6 +49,7 @@ def create_sdss_csv(gals,the_band_pairs,csv_path):
                             the_band_pair.classification_label,
                             the_band_pair.classification_score,
                             pos_side_data_string,neg_side_data_string])
+            """
         
         the_row.extend([gal.cumulative_classification_vote_count,gal.cumulative_score])
         rows.append(the_row)
