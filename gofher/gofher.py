@@ -10,6 +10,8 @@ from mask import create_ellipse_mask_from_gofher_params
 
 from run_sersic import fit_sersic
 
+from fits import view_fits #for testing
+
 class gofher_parameters:
     """Contains gofher ellipse parameters"""
     def __init__(self):
@@ -154,6 +156,7 @@ def run_gofher_on_galaxy_with_fixed_center_only(the_gal,the_band_pairs,fixed_gof
     return the_gal
 
 def run_gofher_on_galaxy_with_sparcfire_center_inital_guess(the_gal,the_band_pairs,fixed_gofher_params):
+    """
     #Step 1: Setup inital necessary variables:
     inital_gofher_parameters = gofher_parameters()
     data = copy.deepcopy(the_gal[the_gal.ref_band].data)
@@ -167,9 +170,13 @@ def run_gofher_on_galaxy_with_sparcfire_center_inital_guess(the_gal,the_band_pai
     #Step 3: Manually Fix center:
     inital_gofher_parameters.x = fixed_gofher_params.x
     inital_gofher_parameters.y = fixed_gofher_params.y
+    """
     
     #Step 4: Create an ellipse mask using the inital_gofher_parameters
-    el_mask = create_ellipse_mask_from_gofher_params(inital_gofher_parameters,shape,r=1.0)
+    data = copy.deepcopy(the_gal[the_gal.ref_band].data)
+    shape = the_gal.get_shape()
+    el_mask = create_ellipse_mask_from_gofher_params(fixed_gofher_params,shape,r=1.0)
+    (cm_x, cm_y) = (fixed_gofher_params.x,fixed_gofher_params.y)
 
     #Step 5: Using the inital_gofher_parameters fit two pdfs pdf_in (probability inside ellipse) and pdf_out (probability outside ellipse)
     inside_ellipse = data[np.logical_and(el_mask,the_gal[the_gal.ref_band].valid_pixel_mask)].flatten()
@@ -192,12 +199,12 @@ def run_gofher_on_galaxy_with_sparcfire_center_inital_guess(the_gal,the_band_pai
     #if True:
     try:
         the_sersic_mask = np.logical_and(the_mask,the_gal[the_gal.ref_band].valid_pixel_mask)
-        the_gal.gofher_params = get_gopher_params_from_sersic_fit(inital_gofher_parameters,data,the_sersic_mask)
-        the_gal.gofher_params.a = the_el_sep['a']
-        the_gal.gofher_params.b = the_el_sep['b']
+        the_gal.gofher_params = get_gopher_params_from_sersic_fit(fixed_gofher_params,data,the_sersic_mask)
+        the_gal.gofher_params.a = fixed_gofher_params.a
+        the_gal.gofher_params.b = fixed_gofher_params.b
     except:
         print("Error fitting sersic, using inital_gofher_parameters from sep")
-        the_gal.gofher_params = inital_gofher_parameters
+        the_gal.gofher_params = fixed_gofher_params
         the_gal.encountered_sersic_fit_error = True
 
     #Step 8: Now run gofher!

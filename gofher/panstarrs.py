@@ -10,8 +10,11 @@ from astropy.visualization import make_lupton_rgb
 from galaxy import galaxy, galaxy_band_pair, construct_band_pair_key
 
 
-PANSTARRS_BANDS_IN_ORDER = ['g','r','i','z','y'] #PANSTARRS
-PANSTARRS_REF_BANDS_IN_ORDER = ['i','z','y','r','g']
+#PANSTARRS_BANDS_IN_ORDER = ['g','r','i','z','y'] #PANSTARRS
+#PANSTARRS_REF_BANDS_IN_ORDER = ['i','z','y','r','g']
+
+PANSTARRS_BANDS_IN_ORDER = ['r','i','z','y'] #PANSTARRS
+PANSTARRS_REF_BANDS_IN_ORDER = ['i','z','y','r']
 
 def create_panstarrs_csv(gals,the_band_pairs,csv_path):
     """create an csv containing the information from gofher of the given galaxies"""

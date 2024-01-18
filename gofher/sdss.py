@@ -9,8 +9,11 @@ from astropy.visualization import make_lupton_rgb
 from galaxy import galaxy, galaxy_band_pair, construct_band_pair_key
 
 
-SDSS_BANDS_IN_ORDER = ['u','g','r','i','z'] #SDSS
-SDSS_REF_BANDS_IN_ORDER = ['r','i','z','g','u']
+#SDSS_BANDS_IN_ORDER = ['u','g','r','i','z'] #SDSS
+#SDSS_REF_BANDS_IN_ORDER = ['r','i','z','g','u']
+
+SDSS_BANDS_IN_ORDER = ['g','r','i','z'] #SDSS
+SDSS_REF_BANDS_IN_ORDER = ['r','i','z','g']
 
 def create_sdss_csv(gals,the_band_pairs,csv_path):
     """create an csv containing the information from gofher of the given galaxies"""

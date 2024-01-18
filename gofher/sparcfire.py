@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import scipy.interpolate
 
 
 from gofher import gofher_parameters
@@ -44,18 +45,30 @@ def convert_matlab_to_cartessian(inputCenterC,inputCenterR):
     cy = inputCenterR - 1.5
     return (cx,cy)
 
-def extract_params_from_sparcfire_params(inputCenterC,inputCenterR,diskMajAxsLen,diskMinAxsLen,diskMajAxsAngleRadians):
+def extract_params_from_sparcfire_params(inputCenterC,inputCenterR,diskMajAxsLen,diskMinAxsLen,diskMajAxsAngleRadians,bulgeMajAxsLen,bulge_disk_r):
+    #calculate maj_axis:
+    ##  When bulge_disk_r=0.0 -> bulgeMajAxsLen
+    ##  When bulge_disk_r=1.0 -> diskMajAxsLen
+    ## Else: Weighting
+    bulge_disk_r = max(0,min(bulge_disk_r,1.0))
+    diff = diskMajAxsLen - bulgeMajAxsLen
+    
+    maj_axis_len = bulgeMajAxsLen + diff*bulge_disk_r
+    minor_axis_len = diskMinAxsLen * (maj_axis_len/diskMajAxsLen)
+
     the_params = gofher_parameters()
     (h, k) = convert_matlab_to_cartessian(inputCenterC, inputCenterR)
 
     the_params.x = h
     the_params.y = k
-    the_params.a = diskMajAxsLen * 0.5
-    the_params.b = diskMinAxsLen * 0.5
+    #the_params.a = diskMajAxsLen * 0.5
+    #the_params.b = diskMinAxsLen * 0.5
+    the_params.a = maj_axis_len * 0.5
+    the_params.b = minor_axis_len * 0.5
     the_params.theta = convert_disk_angle_to_bisection_angle(diskMajAxsAngleRadians)
     return the_params
 
-def load_sparcfire_dict(band_dict):
+def load_sparcfire_dict(band_dict,bulge_disk_r=1.0):
     inputCenterC = 0;inputCenterR = 0
     diskMajAxsLen = 0; diskMinAxsLen = 0; diskMajAxsAngleRadians = 0
     for each_key in band_dict:
@@ -76,13 +89,13 @@ def load_sparcfire_dict(band_dict):
                 bulgeMajAxsLen = float(band_dict[each_key])
             elif each_key == BULGE_MAJ_AXS_ANGLE_KEY:
                 bulgeMajAxsAngle = float(band_dict[each_key])
-    return extract_params_from_sparcfire_params(inputCenterC,inputCenterR,diskMajAxsLen,diskMinAxsLen,diskMajAxsAngleRadians)
+    return extract_params_from_sparcfire_params(inputCenterC,inputCenterR,diskMajAxsLen,diskMinAxsLen,diskMajAxsAngleRadians,bulgeMajAxsLen,bulge_disk_r)
 
-def get_ref_band_and_gofher_params(sparcfire_bands,ref_bands_in_order):
+def get_ref_band_and_gofher_params(sparcfire_bands,ref_bands_in_order,bulge_disk_r=1.0):
     for band in ref_bands_in_order:
         if band not in sparcfire_bands: continue
         
-        the_params = load_sparcfire_dict(sparcfire_bands[band])
+        the_params = load_sparcfire_dict(sparcfire_bands[band],bulge_disk_r)
         if not isinstance(the_params,gofher_parameters): continue
 
         return band, the_params
