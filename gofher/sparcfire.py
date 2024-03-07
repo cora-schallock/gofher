@@ -101,6 +101,14 @@ def get_ref_band_and_gofher_params(sparcfire_bands,ref_bands_in_order,bulge_disk
         return band, the_params
     return None, None
 
+def get_gofher_params_for_fixed_ref_band(sparcfire_bands, the_ref_band, bulge_disk_r=1.0):
+    if the_ref_band not in sparcfire_bands: return None
+
+    the_params = load_sparcfire_dict(sparcfire_bands[the_ref_band],bulge_disk_r)
+    if not isinstance(the_params,gofher_parameters): return None
+
+    return the_params
+
 def normalize_row_keys(the_row):
     to_return = dict()
     for key in the_row.keys():
@@ -130,7 +138,7 @@ def row_to_band_dict(the_row):
 def read_sparcfire_galaxy_csv(csv_path):
     '''read galaxy data from csv'''
     csv_dict = dict()
-    df = pd.read_csv(csv_path,encoding = 'ISO-8859-1')
+    df = pd.read_csv(csv_path,encoding = 'ascii' , on_bad_lines='skip')#'ISO-8859-1'
     
     for index, row in df.iterrows():
         gal_name, gal_band, gal_dict = row_to_band_dict(row)

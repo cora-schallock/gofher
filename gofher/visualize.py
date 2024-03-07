@@ -5,6 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+import matplotlib
+matplotlib.use('Agg') #for memory leak in plt backend: https://stackoverflow.com/a/73698657/13544635
+
 from galaxy import galaxy, galaxy_band, construct_band_pair_key
 
 DEFAULT_POSITIVE_RGB_VECTOR = [60/255,179/255,113/255] #mediumseagreen
@@ -24,7 +27,8 @@ def get_subplot_mosaic_strtings(bands_in_order):
     band_keys = []
     for (first_band,base_band) in itertools.combinations(bands_in_order, 2):
         band_keys.append(construct_band_pair_key(first_band,base_band))
-    return np.array(band_keys).reshape(5,2).tolist()
+    #return np.array(band_keys).reshape(5,2).tolist()
+    return np.array(band_keys).reshape(int(len(band_keys)/2),2).tolist()
 
 
 def create_visualize(the_gal: galaxy, bands_in_order = []):
@@ -32,7 +36,9 @@ def create_visualize(the_gal: galaxy, bands_in_order = []):
     mo_labels = [['color','ref_band']]
     mo_labels.extend(get_subplot_mosaic_strtings(bands_in_order))
     
-    gs_kw = dict(width_ratios=[1,1], height_ratios=[2,1,1,1,1,1])
+    height_ratios = [2] + [1] * int(len(mo_labels)-1) #only works if band_pair numbers is even
+    #gs_kw = dict(width_ratios=[1,1], height_ratios=[2,1,1,1,1,1])
+    gs_kw = dict(width_ratios=[1,1], height_ratios=height_ratios)
     fig, axd = plt.subplot_mosaic(mo_labels,
                                   gridspec_kw=gs_kw, figsize = (24,30),
                                   constrained_layout=True,num=1, clear=True) #num=1, clear=True #https://stackoverflow.com/a/65910539/13544635

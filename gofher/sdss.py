@@ -2,6 +2,9 @@ import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
+import matplotlib
+matplotlib.use('Agg')  #for memory leak in plt backend: https://stackoverflow.com/a/73698657/13544635
+
 from gofher import normalize_array
 from file_helper import write_csv
 from visualize import create_visualize
@@ -36,23 +39,27 @@ def create_sdss_csv(gals,the_band_pairs,csv_path):
         the_row = [gal.name,gal.dark_side,gal.pos_side_label,gal.neg_side_label,gal.ref_band,str(gal.encountered_sersic_fit_error)]
         for band_pair in the_band_pairs:
             band_pair_key = construct_band_pair_key(band_pair[0],band_pair[1])
-            the_band_pair = gal.get_band_pair(band_pair_key)
+            if band_pair_key in gal.band_pairs:
+                the_band_pair = gal.get_band_pair(band_pair_key)
             
-            the_row.extend([the_band_pair.pos_fit_norm_mean,the_band_pair.pos_fit_norm_std,
-                            the_band_pair.neg_fit_norm_mean,the_band_pair.neg_fit_norm_std,
-                            the_band_pair.d_stat, the_band_pair.p_value,
-                            the_band_pair.classification_label,
-                            the_band_pair.classification_score])
-            """
-            pos_side_data_string = ';'.join(list(map(lambda x: str(x),the_band_pair.pos_side.flatten())))
-            neg_side_data_string = ';'.join(list(map(lambda x: str(x),the_band_pair.neg_side.flatten())))
-            the_row.extend([the_band_pair.pos_fit_norm_mean,the_band_pair.pos_fit_norm_std,
-                            the_band_pair.neg_fit_norm_mean,the_band_pair.neg_fit_norm_std,
-                            the_band_pair.d_stat, the_band_pair.p_value,
-                            the_band_pair.classification_label,
-                            the_band_pair.classification_score,
-                            pos_side_data_string,neg_side_data_string])
-            """
+                the_row.extend([the_band_pair.pos_fit_norm_mean,the_band_pair.pos_fit_norm_std,
+                                the_band_pair.neg_fit_norm_mean,the_band_pair.neg_fit_norm_std,
+                                the_band_pair.d_stat, the_band_pair.p_value,
+                                the_band_pair.classification_label,
+                                the_band_pair.classification_score])
+                """
+                pos_side_data_string = ';'.join(list(map(lambda x: str(x),the_band_pair.pos_side.flatten())))
+                neg_side_data_string = ';'.join(list(map(lambda x: str(x),the_band_pair.neg_side.flatten())))
+                the_row.extend([the_band_pair.pos_fit_norm_mean,the_band_pair.pos_fit_norm_std,
+                                the_band_pair.neg_fit_norm_mean,the_band_pair.neg_fit_norm_std,
+                                the_band_pair.d_stat, the_band_pair.p_value,
+                                the_band_pair.classification_label,
+                                the_band_pair.classification_score,
+                                pos_side_data_string,neg_side_data_string])
+                """
+            else:
+                the_row.extend(['']*len(per_band_column_headers))
+            
         
         the_row.extend([gal.cumulative_classification_vote_count,gal.cumulative_score])
         rows.append(the_row)
@@ -82,7 +89,7 @@ def consruct_color_image(the_gal,scale=10):
 
     return make_lupton_rgb(i, r, g, Q=10, stretch=0.3, minimum=0.0)
 
-def visualize_sdss(the_gal: galaxy, save_path=''):
+def visualize_sdss(the_gal: galaxy, save_path='', additional_title_string=''):
     """visualize the output for an sdss galaxy"""
     img = consruct_color_image(the_gal)
     fig, axd = create_visualize(the_gal,SDSS_BANDS_IN_ORDER)
@@ -90,7 +97,7 @@ def visualize_sdss(the_gal: galaxy, save_path=''):
     if the_gal.has_valid_band('i') and the_gal.has_valid_band('r') and the_gal.has_valid_band('g'):
         img = consruct_color_image(the_gal)
         axd['color'].imshow(img, interpolation='nearest',origin='lower')
-        axd['color'].set_title("{}\n paper label={}".format(the_gal.name,the_gal.dark_side))
+        axd['color'].set_title("{}{}\n paper label={}".format(the_gal.name,additional_title_string,the_gal.dark_side))
 
     if save_path != "":
         fig.savefig(save_path, dpi = 300, bbox_inches='tight')
