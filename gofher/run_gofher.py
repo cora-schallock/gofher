@@ -7,10 +7,10 @@ from sdss import create_sdss_csv, SDSS_BANDS_IN_ORDER
 from panstarrs import create_panstarrs_csv, PANSTARRS_BANDS_IN_ORDER
 from file_helper import check_if_folder_exists_and_create
 
-use_panstarrs = False
+use_panstarrs = True
 
 visualize_gals=False
-make_csv=True
+make_csv=False
 
 if use_panstarrs:
     path_to_input = "C:\\Users\\school\\Desktop\\github\\spin-parity-catalog\\original\\galaxies\\" #PANSTARRS
@@ -19,13 +19,15 @@ else:
 
 if use_panstarrs:
     #output_folder_name = "gofher_panstarrs_bounds_test" #PANSTARRS
-    output_folder_name = "gofher_panstarrs_sans_g" #PANSTARRS
+    #output_folder_name = "gofher_panstarrs_sans_g" #PANSTARRS
+    output_folder_name = "source_extraction"
 else:
     #output_folder_name = "gofher_SDSS_mosaic_bounds_test" #SDSS
     output_folder_name = "gofher_sdss_sans_u" #SDSS
 
-folder_name = "table2"
-path_to_output = "C:\\Users\\school\\Desktop\\gofher_output_refactor"
+folder_name = "table4"
+#path_to_output = "C:\\Users\\school\\Desktop\\gofher_output_refactor"
+path_to_output = "E:\\grad_school\\research\\spin_parity_panstarrs"
 
 def get_fits_path(name,band):
     """the file path of where existing fits files can be found"""
@@ -65,6 +67,8 @@ if __name__ == "__main__":
 
     setup_output_directories()
 
+    diff_gals = ['NGC1','NGC278', 'NGC2207', 'NGC3887', 'NGC4536', 'NGC5135', 'UGC12274', 'NGC450']
+
     the_gals = []
     i = 1
     for name in get_galaxy_list():
@@ -78,11 +82,22 @@ if __name__ == "__main__":
             paper_dark_side_label = dark_side_labels[name]
             if use_panstarrs:
                 the_gal = run_panstarrs(name, get_fits_path, save_vis_path=save_vis_path,dark_side_label=paper_dark_side_label,color_image_path=get_color_image_path(name)) #PANSTARRS
+
+                for each_band_pair in the_gal.band_pairs:
+                    import matplotlib.pyplot as plt
+                    the_diff_image = the_gal.band_pairs[each_band_pair].diff_image
+
+                    if name not in diff_gals: continue
+                    plt.imshow(the_diff_image, origin = 'lower')
+                    diff_image_for_paper_path = "E:\\grad_school\\research\\spin_parity_panstarrs\\diff_images_for_questionable_cases\\{}_{}_diff.png".format(the_gal.name, each_band_pair)
+                    plt.savefig(diff_image_for_paper_path)
             else:
                 the_gal = run_sdss(name, get_fits_path, save_vis_path=save_vis_path, dark_side_label=paper_dark_side_label) #SDSS
             the_gals.append(the_gal)
+            #break
         except:
             print("Error when running on",name)
+            #break
 
     if make_csv:
         if use_panstarrs:

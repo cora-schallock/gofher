@@ -215,6 +215,16 @@ class galaxy:
 
         the_band_pair_key = construct_band_pair_key(first_band, base_band)
         diff_image = create_diff_image(copy.deepcopy(self[first_band].data),copy.deepcopy(self[base_band].data),to_diff_mask)
+        #diff_image = copy.deepcopy(self[first_band].data) - copy.deepcopy(self[base_band].data)#TODO: delte (for wayne test)
+
+        #import matplotlib.pyplot as plt#TODO: delte (for wayne test)
+
+        #to_plot = diff_image#TODO: delte (for wayne test)
+        #to_plot[np.logical_not(to_diff_mask)] = 0.0#TODO: delte (for wayne test)
+        #print(first_band,base_band)#TODO: delte (for wayne test)
+        #save_path = "C:\\Users\\school\\Desktop\\for_wayne_03_07_2024\\{}-{}_nonorm.png".format(first_band,base_band)#TODO: delte (for wayne test)
+        #plt.imshow(diff_image,origin='lower')#TODO: delte (for wayne test)
+        #plt.savefig(save_path, dpi = 300, bbox_inches='tight') #TODO: delte (for wayne test)
         self.band_pairs[the_band_pair_key] = galaxy_band_pair(first_band,base_band,diff_image,to_diff_mask)
 
         return self.band_pairs[the_band_pair_key]
