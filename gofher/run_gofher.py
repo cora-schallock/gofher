@@ -25,7 +25,7 @@ else:
     #output_folder_name = "gofher_SDSS_mosaic_bounds_test" #SDSS
     output_folder_name = "gofher_sdss_sans_u" #SDSS
 
-folder_name = "table4"
+folder_name = "table3"
 #path_to_output = "C:\\Users\\school\\Desktop\\gofher_output_refactor"
 path_to_output = "E:\\grad_school\\research\\spin_parity_panstarrs"
 
@@ -59,6 +59,61 @@ def setup_output_directories():
     output_folder_path = os.path.join(path_to_output, output_folder_name, folder_name)
     check_if_folder_exists_and_create(output_folder_path)
 
+def output_normed_pixels_table_for_ebm(the_gal, dir):
+    import numpy as np
+    from gofher import normalize_array
+    import copy
+    import matplotlib.pyplot as plt
+    from file_helper import write_csv
+
+
+    pos_mask, neg_mask = the_gal.create_bisection()
+    el_mask = the_gal.create_ellipse()
+    normed_dict = dict()
+
+    for band in the_gal.bands:
+        #pos_mask = np.logical_and(the_gal[band].valid_pixel_mask,pos_mask)
+        el_mask = np.logical_and(el_mask, copy.deepcopy(the_gal[band].valid_pixel_mask))
+        #neg_mask = np.logical_and(neg_mask, copy.deepcopy(the_gal[band].valid_pixel_mask))
+        #neg_mask = np.logical_and(the_gal[band].valid_pixel_mask,neg_mask)
+    for band in the_gal.bands:
+        normed_dict[band] = normalize_array(copy.deepcopy(the_gal[band].data),np.logical_and(el_mask,the_gal[band].valid_pixel_mask))
+
+    #print(normed_dict)
+    rows_to_write = []
+    for i in range(el_mask.shape[0]):
+        for j in range(el_mask.shape[1]):
+            if el_mask[i,j] <= 0:
+                continue
+
+            side = None
+            if pos_mask[i,j] > 0:
+                side = 1
+            elif neg_mask[i,j] > 0:
+                side = 0
+            else:
+                break
+            #if normed_dict['r'][i,j] > 0:
+            #    print(normed_dict['r'][i,j])
+
+            if side == None:
+                continue
+            #print(normed_dict['r'][i,j])
+
+            the_row = []
+            for band in PANSTARRS_BANDS_IN_ORDER:
+                if band not in normed_dict:
+                    the_row.append("None")
+                else:
+                    the_row.append(normed_dict[band][i,j])
+            the_row.append(side)
+
+            rows_to_write.append(the_row)
+
+    pa = "E:\\grad_school\\research\\spin_parity_panstarrs\\normed_fits_output\\{}\\{}.csv".format(dir,the_gal.name)
+    write_csv(pa,PANSTARRS_BANDS_IN_ORDER+['side'],rows_to_write)
+
+
 
 if __name__ == "__main__":
     dark_side_labels = read_spin_parity_galaxies_label_from_csv(get_dark_side_csv_path())
@@ -67,7 +122,7 @@ if __name__ == "__main__":
 
     setup_output_directories()
 
-    diff_gals = ['NGC1','NGC278', 'NGC2207', 'NGC3887', 'NGC4536', 'NGC5135', 'UGC12274', 'NGC450']
+    #diff_gals = ['NGC1','NGC278', 'NGC2207', 'NGC3887', 'NGC4536', 'NGC5135', 'UGC12274', 'NGC450']
 
     the_gals = []
     i = 1
@@ -79,10 +134,18 @@ if __name__ == "__main__":
             if visualize_gals: 
                 save_vis_path=get_save_vis_path(name)
 
-            paper_dark_side_label = dark_side_labels[name]
+            if name in dark_side_labels:
+                paper_dark_side_label = dark_side_labels[name]
+            else:
+                paper_dark_side_label = "placeholder"
             if use_panstarrs:
                 the_gal = run_panstarrs(name, get_fits_path, save_vis_path=save_vis_path,dark_side_label=paper_dark_side_label,color_image_path=get_color_image_path(name)) #PANSTARRS
 
+                output_normed_pixels_table_for_ebm(the_gal, folder_name)
+                #break
+        
+
+                """
                 for each_band_pair in the_gal.band_pairs:
                     import matplotlib.pyplot as plt
                     the_diff_image = the_gal.band_pairs[each_band_pair].diff_image
@@ -91,12 +154,14 @@ if __name__ == "__main__":
                     plt.imshow(the_diff_image, origin = 'lower')
                     diff_image_for_paper_path = "E:\\grad_school\\research\\spin_parity_panstarrs\\diff_images_for_questionable_cases\\{}_{}_diff.png".format(the_gal.name, each_band_pair)
                     plt.savefig(diff_image_for_paper_path)
+                """
             else:
                 the_gal = run_sdss(name, get_fits_path, save_vis_path=save_vis_path, dark_side_label=paper_dark_side_label) #SDSS
             the_gals.append(the_gal)
             #break
         except:
             print("Error when running on",name)
+            #break
             #break
 
     if make_csv:
