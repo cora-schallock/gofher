@@ -75,5 +75,20 @@ def visualize_panstarrs(the_gal: galaxy, save_path='',color_img_path=''):
         plt.close(fig)
     else:
         plt.show()
+        
+def visualize_panstarrs_diff(the_gal: galaxy, save_path='',color_img_path=''):
+    fig, axd = create_visualize_of_diff(the_gal,PANSTARRS_BANDS_IN_ORDER)
+
+    color = mpimg.imread(color_img_path)
+    axd['color'].imshow(color)
+    axd['color'].set_title("{}\n paper label={}".format(the_gal.name,the_gal.dark_side))
+
+    if save_path != "":
+        fig.savefig(save_path, dpi = 300, bbox_inches='tight')
+        fig.clear()
+        plt.close(fig)
+    else:
+        plt.show()
+    
     
     
