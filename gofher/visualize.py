@@ -19,26 +19,33 @@ def create_color_map_class(pos,neg,el):
     
     return cmap_class
 
-def get_subplot_mosaic_strtings(bands_in_order):
+def get_subplot_mosaic_strtings(selected_bands_in_order):
     """get the strings for the band pairs used in the mosaic plt plot"""
     band_keys = []
-    for (first_band,base_band) in itertools.combinations(bands_in_order, 2):
+    for (first_band,base_band) in itertools.combinations(selected_bands_in_order, 2):
         band_keys.append(construct_band_pair_key(first_band,base_band))
-    return np.array(band_keys).reshape(5,2).tolist()
+    return np.array(band_keys).reshape(len(selected_bands_in_order),2).tolist()
 
 
-def create_visualize(the_gal: galaxy, bands_in_order = []):
+def create_visualize(the_gal: galaxy, selected_bands_in_order = []):
     """create and return a visualize of the galaxy"""
-    mo_labels = [['color','ref_band']]
-    mo_labels.extend(get_subplot_mosaic_strtings(bands_in_order))
+    #1) Generate band-pair keys for selected_bands_in_order
+    selected_band_pair_keys = get_subplot_mosaic_strtings(selected_bands_in_order)
     
-    gs_kw = dict(width_ratios=[1,1], height_ratios=[2,1,1,1,1,1])
+    #2) Create graph mosaic object
+    mo_labels = [['color','ref_band']]
+    mo_labels.extend(selected_band_pair_keys)
+    
+    gs_kw = dict(width_ratios=[1,1], height_ratios=[2] + [1]*len(selected_bands_in_order))
     fig, axd = plt.subplot_mosaic(mo_labels,
                                   gridspec_kw=gs_kw, figsize = (24,30),
                                   constrained_layout=True,num=1, clear=True) #num=1, clear=True #https://stackoverflow.com/a/65910539/13544635
     fig.patch.set_facecolor('white')
 
+    #3) For each band-pair in the galaxy, plot histogram for pos/neg side with mean:
     for band_pair_key in the_gal.band_pairs:
+        if band_pair_key not in selected_band_pair_keys: return
+        
         pl = ''; ml = '' #temp
         band_pair = the_gal.get_band_pair(band_pair_key)
 
@@ -63,6 +70,7 @@ def create_visualize(the_gal: galaxy, bands_in_order = []):
         axd[band_pair_key].set_title("{}: {}".format(band_pair_key,band_pair.classification_label))
         axd[band_pair_key].legend()
 
+    #4) Plot ref band image:
     data = copy.deepcopy(the_gal[the_gal.ref_band].data)
     el_mask = the_gal.create_ellipse()
     pos_mask, neg_mask = the_gal.create_bisection()
@@ -75,7 +83,7 @@ def create_visualize(the_gal: galaxy, bands_in_order = []):
     cmap = create_color_map_class(pos_mask,neg_mask,np.logical_and(el_mask,the_mask))
     data[np.logical_not(the_mask)] = 0
 
-    axd['ref_band'].imshow(data, interpolation='nearest', cmap='gray', vmin=m-3*s, vmax=m+3*s, origin='lower') #, cmap='gray'
+    axd['ref_band'].imshow(data, interpolation='nearest', cmap='gray', vmin=m-3*s, vmax=m+3*s, origin='lower')
     axd['ref_band'].imshow(cmap, origin= 'lower',alpha=0.4)
     axd['ref_band'].set_title('ref band: {}\nVote:{}'.format(the_gal.ref_band,the_gal.cumulative_classification_vote_count))
 
