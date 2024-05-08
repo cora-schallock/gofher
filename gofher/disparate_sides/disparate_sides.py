@@ -2,10 +2,13 @@ import os
 import subprocess
 import sys
 import pathlib
+import csv
 
 DISPARATE_SIDES_DIR = "./most-disparate-side.sh"
-pa = "NGC2841n.tsv"
+#pa = "NGC2841n.tsv"
 #pa = "IC1151n.tsv"
+#pa = "NGC1056.tsv"
+pa = "NGC3367.tsv"
 
 # TODO: constuct normed tsv (see IC1151n.tsv for details)
 # allow run_disparate_sides() take a variable tsv
@@ -108,13 +111,35 @@ def run_disparate_sides():
     if len(parsed_output) < 4:
         return None
     else:
+        print(parsed_output)
         #for each_line in parsed_output[:-2]:
         #    print(each_line)
  
         dsv = disparate_sides_vote(parsed_output[:-3],parsed_output[-3],parsed_output[-2:])
 
-        
+def convert_normed_csv_to_normed_tsv(csv_path,tsv_path):
+    all_rows=[]
+    is_header = True
+    with open(csv_path,'r') as f:
+        for line in f.readlines():
+            to_write = []
+            if is_header:
+                to_write = line.strip().split(',')
+                all_rows.append(to_write)
+                is_header = False
+            else:
+                line = line.strip().split(',')
+                for each in line[:-1]:
+                    to_write.append("{:.8f}".format(float(each)))
+                to_write.append(line[-1])
+                all_rows.append(to_write)
+    with open(tsv_path, 'w', newline='') as f_output:
+        tsv_output = csv.writer(f_output, delimiter='\t')
+        tsv_output.writerows(all_rows)
 
+csv_path = 'C:\\Users\\school\\Desktop\\diff_output\\files_for_meeting\\NGC157.csv'
+tsv_path = 'C:\\Users\\school\\Desktop\\diff_output\\files_for_meeting\\NGC157.tsv'    
+convert_normed_csv_to_normed_tsv(csv_path,tsv_path)
 """
 def run_sextractor(fits_path,output_path='output.txt'):
 
@@ -155,4 +180,4 @@ def run_sextractor(fits_path,output_path='output.txt'):
             raise OSError("Not recognized OS, must be Windows or Linux")
 """
 
-run_disparate_sides()
+##run_disparate_sides()

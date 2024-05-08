@@ -98,21 +98,23 @@ def create_visualize_of_diff(the_gal: galaxy, bands_in_order = []):
                                   gridspec_kw=gs_kw, figsize = (24,30),
                                   constrained_layout=True,num=1, clear=True)
     el_mask = the_gal.create_ellipse()
-    mask_out_it = np.logical_not(el_mask)
+    mask_it_out = np.logical_not(el_mask)
     
     for band_pair_key in the_gal.band_pairs:
         pl = ''; ml = '' #temp
         band_pair = the_gal.get_band_pair(band_pair_key)
         the_diff = band_pair.diff_image
-        the_diff[mask_it_out] = -np.INF
+        the_diff[mask_it_out] = -np.Inf
         
         axd[band_pair_key].set_title("{}: {}".format(band_pair.classification_label,band_pair.p_value))
         axd[band_pair_key].imshow(the_diff, interpolation='nearest', cmap='plasma', origin='lower')
     
     the_mask = the_gal[the_gal.ref_band].valid_pixel_mask
+    data = the_gal[the_gal.ref_band].data
+    pos_mask,neg_mask = the_gal.create_bisection()
     m, s = np.mean(data[the_mask]), np.std(data[the_mask])
     cmap = create_color_map_class(pos_mask,neg_mask,np.logical_and(el_mask,the_mask))
-    data[mask_out_it] = -np.INF
+    #data[mask_it_out] = -np.Inf
     
     axd['ref_band'].imshow(data, interpolation='nearest', cmap='gray', vmin=m-3*s, vmax=m+3*s, origin='lower')
     axd['ref_band'].imshow(cmap, origin= 'lower',alpha=0.4)

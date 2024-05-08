@@ -5,7 +5,7 @@ import matplotlib.image as mpimg
 
 from gofher import normalize_array
 from file_helper import write_csv
-from visualize import create_visualize
+from visualize import create_visualize, create_visualize_of_diff
 from astropy.visualization import make_lupton_rgb
 from galaxy import galaxy, galaxy_band_pair, construct_band_pair_key
 
