@@ -162,6 +162,8 @@ class galaxy:
 
         self.folder = ''
 
+        self.disparate_sides_vote = None
+
     def has_band(self, band):
         """checks if galaxy has sepcific wave band given name"""
         return band in self.bands

@@ -5,10 +5,12 @@ import pathlib
 import csv
 import copy
 import numpy as np
+from scipy.stats import ks_2samp
 
 from gofher import normalize_array
 from galaxy import galaxy
 from file_helper import write_csv
+from ebm import EmpiricalBrownsMethod
 
 DISPARATE_SIDES_DIR = "disparate_sides"
 #DISPARATE_SIDES_DIR = "./most-disparate-side.sh"
@@ -23,6 +25,106 @@ pa = "NGC3367.tsv"
 # implement methods to check for no vote
 # make callable from python scripts outside
 # clean up this file
+
+
+def run_ebm(the_gal: galaxy):
+    to_diff_mask = the_gal.create_ellipse()
+    normed_pixels = dict()
+
+    pos_mask,neg_mask = the_gal.create_bisection()
+
+    for band in the_gal.bands:
+        the_band = the_gal[band]
+        normed_pixels[band] = the_band.data
+
+        if the_band.valid_pixel_mask is None: the_band.construct_valid_pixel_mask()
+        to_diff_mask = np.logical_and(to_diff_mask,the_band.valid_pixel_mask)
+
+    bands = list(normed_pixels.keys())
+    pos_diff_mask = np.logical_and(to_diff_mask,pos_mask)
+    neg_diff_mask = np.logical_and(to_diff_mask,neg_mask)
+
+    positive_normed_array = np.zeros((len(normed_pixels),np.count_nonzero(pos_diff_mask)))
+    negative_normed_array = np.zeros((len(normed_pixels),np.count_nonzero(neg_diff_mask)))
+
+    for band in normed_pixels:
+        normed_pixels[band] = normalize_array(normed_pixels[band],to_diff_mask)
+
+    for i in range(len(bands)):
+        positive_normed_array[i] = normed_pixels[bands[i]][pos_diff_mask]
+        negative_normed_array[i] = normed_pixels[bands[i]][neg_diff_mask]
+    
+    negative_one_votes = []
+    positive_one_votes = []
+    for band_pair_key in the_gal.band_pairs:
+        vote = the_gal.get_band_pair(band_pair_key).classification
+        if int(vote) == 1:
+            negative_one_votes.append(band_pair_key) #classifcation flipped
+        elif int(vote) == -1:
+            positive_one_votes.append(band_pair_key)
+            
+    positive_one_ebm = 1.0
+    negative_one_ebm = 1.0
+    
+    if len(positive_one_votes) != 0:
+        positive_ones_matrix = np.zeros((len(positive_one_votes),np.count_nonzero(pos_diff_mask)))
+        positive_ones_pval = []
+        for i in range(len(positive_one_votes)):
+            band_pair = positive_one_votes[i]
+            [first_band,base_band] = band_pair.split("-")
+            j = bands.index(first_band)
+            k = bands.index(base_band)
+
+            positive_ones_matrix[i] = positive_normed_array[j]-positive_normed_array[k]
+            p_val = ks_2samp(positive_normed_array[j],positive_normed_array[k]).pvalue
+            positive_ones_pval.append(p_val)
+
+        positive_one_ebm = positive_ones_pval[0]
+        if len(positive_one_votes) > 1:
+            positive_one_ebm = EmpiricalBrownsMethod(positive_ones_matrix, positive_ones_pval)
+        #print('pos ebm:', positive_one_ebm)
+
+    if len(negative_one_votes) != 0:
+        #print(len(negative_one_votes))
+        negative_ones_matrix = np.zeros((len(negative_one_votes),np.count_nonzero(neg_diff_mask)))
+        negative_ones_pval = []
+        for i in range(len(negative_one_votes)):
+            band_pair = negative_one_votes[i]
+            [first_band,base_band] = band_pair.split("-")
+            j = bands.index(first_band)
+            k = bands.index(base_band)
+
+            negative_ones_matrix[i] = negative_normed_array[j]-negative_normed_array[k]
+            p_val = ks_2samp(negative_normed_array[j],negative_normed_array[k]).pvalue
+            negative_ones_pval.append(p_val)
+
+        negative_one_ebm = negative_ones_pval[0]
+        if len(negative_one_votes) > 1:
+            negative_one_ebm = EmpiricalBrownsMethod(negative_ones_matrix, negative_ones_pval)
+        #print('neg ebm:', negative_one_ebm)
+
+    return positive_one_ebm, negative_one_ebm
+
+    """
+    normed_pixels = dict()
+
+    for band in the_gal.bands:
+        the_band = the_gal[band]
+        normed_pixels[band] = the_band.data
+
+        if the_band.valid_pixel_mask is None: the_band.construct_valid_pixel_mask()
+        valid_pixel_mask = copy.deepcopy(the_band.valid_pixel_mask)
+        to_diff_mask = np.logical_and(to_diff_mask,valid_pixel_mask)
+
+    pos_mask,neg_mask = the_gal.create_bisection()
+    
+    csv_bands = list(normed_pixels.keys())
+    #csv_enteries = np.zeros((len(normed_pixels)+1,np.count_nonzero(to_diff_mask)))
+    csv_enteries = np.zeros((len(normed_pixels),np.count_nonzero(to_diff_mask)))
+    for i in range(len(csv_bands)):
+        csv_enteries[i] = normalize_array(normed_pixels[csv_bands[i]],to_diff_mask)[to_diff_mask]
+    #csv_enteries[-1] = pos_mask[to_diff_mask]
+    """
 
 class disparate_sides_vote:
     def __init__(self,band_pair_lines, mv_winner_line, ebm_lines):
@@ -44,7 +146,9 @@ class disparate_sides_vote:
                 pair_dict["is_success"] = (each_pair[6].lower() == "success")
                 pair_dict["p_val"] = float(each_pair[7])
                 self.band_pairs[each_pair[0]] = pair_dict
-            except: pass
+            except Exception as e:
+                print(e) 
+                pass
         
         if len(mv_winner_line) > 2:
             try:
@@ -52,7 +156,7 @@ class disparate_sides_vote:
             except: pass
 
         for line in ebm_lines:
-            print(line)
+            #print(line)
             if len(line) >= 6:
                 try:
                     label = int(line[1])
@@ -67,37 +171,53 @@ class disparate_sides_vote:
                         self.side_0_naive_p_val = p_val
                 except: pass
 
-        print(self.band_pairs)
-        print(self.mv_winner_label)
-        print(self.side_0_ebm_p_val)
-        print(self.side_1_ebm_p_val)
-        print(self.side_0_naive_p_val)
-        print(self.side_1_naive_p_val)
+        #print(self.band_pairs)
+        #print(self.mv_winner_label)
+        #print(self.side_0_ebm_p_val)
+        #print(self.side_1_ebm_p_val)
+        #print(self.side_0_naive_p_val)
+        #print(self.side_1_naive_p_val)
 
     def get_info(self,pos_label,neg_label):
         best_side_label = ''
         worst_side_label = ''
         ebm_pvalue_dict = dict()
         naive_pvalue_dict = dict()
+        band_pair_dict = dict()
 
         if self.side_0_ebm_p_val != None and self.side_0_naive_p_val != None:
-            ebm_pvalue_dict[neg_label] = self.side_0_ebm_p_val
-            naive_pvalue_dict[neg_label] = self.side_0_naive_p_val
-        else:
-            ebm_pvalue_dict[neg_label] = 1.0
-            naive_pvalue_dict[neg_label] = 1.0
-
-        if self.side_1_ebm_p_val != None and self.side_1_naive_p_val != None:
-            ebm_pvalue_dict[pos_label] = self.side_1_ebm_p_val
-            naive_pvalue_dict[pos_label] = self.side_1_naive_p_val
+            ebm_pvalue_dict[pos_label] = self.side_0_ebm_p_val
+            naive_pvalue_dict[pos_label] = self.side_0_naive_p_val
         else:
             ebm_pvalue_dict[pos_label] = 1.0
             naive_pvalue_dict[pos_label] = 1.0
 
+        if self.side_1_ebm_p_val != None and self.side_1_naive_p_val != None:
+            ebm_pvalue_dict[neg_label] = self.side_1_ebm_p_val
+            naive_pvalue_dict[neg_label] = self.side_1_naive_p_val
+        else:
+            ebm_pvalue_dict[neg_label] = 1.0
+            naive_pvalue_dict[neg_label] = 1.0
+
         best_side_label = min(ebm_pvalue_dict, key = ebm_pvalue_dict.get)
         worst_side_label = max(ebm_pvalue_dict, key = ebm_pvalue_dict.get)
 
-        return [best_side_label,worst_side_label,ebm_pvalue_dict,naive_pvalue_dict]
+        for band_pair_key in self.band_pairs:
+            pair_dict = self.band_pairs[band_pair_key]
+
+            vote_label = ''
+            p_val = 1
+
+            if pair_dict["label"] == 1:
+                vote_label = neg_label
+            elif pair_dict["label"] == 0:
+                vote_label = pos_label
+
+            p_val = pair_dict["p_val"]
+
+            band_pair_dict[band_pair_key] = [vote_label,p_val]
+
+        return [best_side_label,worst_side_label,ebm_pvalue_dict,naive_pvalue_dict,band_pair_dict]
 
         
 
@@ -182,14 +302,14 @@ def run_most_disparate_side_script_on_galaxy(the_gal: galaxy):
     old_working_dir = os.getcwd()
     new_working_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),DISPARATE_SIDES_DIR)
 
-    csv_file_name = "{}.csv".format(the_gal.name)
-    tsv_file_name = "{}.tsv".format(the_gal.name)
+    csv_file_name = "{}.csv".format(the_gal.name.replace(" ",""))
+    tsv_file_name = "{}.tsv".format(the_gal.name.replace(" ",""))
 
     
     csv_path = os.path.join(new_working_dir,csv_file_name)
     if os.path.isfile(csv_path): os.remove(csv_path)
 
-    tsv_path = os.path.join(new_working_dir,csv_file_name)
+    tsv_path = os.path.join(new_working_dir,tsv_file_name)
     if os.path.isfile(tsv_path): os.remove(tsv_path)
 
     to_write = csv_enteries.T.tolist()
@@ -211,6 +331,7 @@ def run_most_disparate_side_script_on_galaxy(the_gal: galaxy):
         if rc != 0:
             print("Error running dos2unix:", error.decode("utf-8"))
             os.chdir(old_working_dir)
+            os.remove(csv_path)
             return None
 
         proc = subprocess.Popen(
@@ -220,12 +341,13 @@ def run_most_disparate_side_script_on_galaxy(the_gal: galaxy):
         if rc != 0:
             print("Error running csv2tsv:", error.decode("utf-8"))
             os.chdir(old_working_dir)
+            os.remove(csv_path)
             return None
         
-        if os.path.isfile(tsv_file_name):
-            print("tsv {} does not exist in {}".format(tsv_file_name,new_working_dir))
-            os.chdir(old_working_dir)
-            return None
+        #if os.path.isfile(tsv_path):
+        #    print("tsv {} does not exist in {}".format(tsv_file_name,new_working_dir))
+        #    os.chdir(old_working_dir)
+        #    return None
         
         proc = subprocess.Popen(
             ['cmd', '/c', 'ubuntu2204', 'run', 'export PATH=$(pwd):$PATH', ';', "./most-disparate-side.sh", "-ebm",  tsv_file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -234,6 +356,8 @@ def run_most_disparate_side_script_on_galaxy(the_gal: galaxy):
         if rc != 0:
             print("Error running ./most-disparate-side.sh:", error.decode("utf-8"))
             os.chdir(old_working_dir)
+            os.remove(csv_path)
+            os.remove(tsv_path)
             return None
 
         parsed_output = parse_most_disparate_side_output(output)
@@ -246,7 +370,13 @@ def run_most_disparate_side_script_on_galaxy(the_gal: galaxy):
         if rc != 0:
             print("Error running csv2tsv:", error.decode("utf-8"))
             os.chdir(old_working_dir)
+            os.remove(csv_path)
             return None
+        
+        #if os.path.isfile(tsv_path):
+        #    print("tsv {} does not exist in {}".format(tsv_file_name,new_working_dir))
+        #    os.chdir(old_working_dir)
+        #    return None
         
         proc = subprocess.Popen(
             ["./most-disparate-side.sh", "-ebm", tsv_file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -255,14 +385,21 @@ def run_most_disparate_side_script_on_galaxy(the_gal: galaxy):
         if rc != 0:
             print("Error running ./most-disparate-side.sh:", error.decode("utf-8"))
             os.chdir(old_working_dir)
+            os.remove(csv_path)
+            os.remove(tsv_path)
             return None
     else:
         print("Error must be running on Windows (via WSL) or Linux natively")
         return None
+    
+    os.remove(csv_path)
+    os.remove(tsv_path)
+    
+    return disparate_sides_vote(parsed_output[:-3],parsed_output[-3], parsed_output[-2:])
 
-    dsv = disparate_sides_vote(parsed_output[:-3],parsed_output[-3],parsed_output[-2:])
-    dsv_info = dsv.get_info(the_gal.pos_side_label,the_gal.neg_side_label)
-    print(dsv_info)
+    #dsv = disparate_sides_vote(parsed_output[:-3],parsed_output[-3],parsed_output[-2:])
+    #dsv_info = dsv.get_info(the_gal.pos_side_label,the_gal.neg_side_label)
+    #print(dsv_info)
 
     
 

@@ -5,13 +5,14 @@ from spin_parity import read_spin_parity_galaxies_label_from_csv
 from run_gofher_on_a_galaxy import run_sdss, run_panstarrs
 from sdss import create_sdss_csv, SDSS_BANDS_IN_ORDER
 from panstarrs import create_panstarrs_csv, PANSTARRS_BANDS_IN_ORDER
-from file_helper import check_if_folder_exists_and_create, write_tsv
-from disparate_sides import run_most_disparate_side_script_on_galaxy
+from file_helper import check_if_folder_exists_and_create, write_tsv, write_csv
+from disparate_sides import run_most_disparate_side_script_on_galaxy, run_ebm
 
 use_panstarrs = True
 
 visualize_gals=False
 make_csv=False
+get_disparate_sides = True
 
 if use_panstarrs:
     ##path_to_input = "C:\\Users\\school\\Desktop\\github\\spin-parity-catalog\\original\\galaxies\\" #PANSTARRS
@@ -221,12 +222,34 @@ def make_diff_image_example_for_paper(the_gal):
     pa = "E:\\grad_school\\research\\spin_parity_panstarrs\\paper_writing\\figure_maker\\{}_histogram.png".format(the_gal.name)
     fig.savefig(pa, dpi=300)
 
+def disparate_csv(the_gal,disparte_info,dark_side_label,output_csv_path):
+    from collections import defaultdict
+
+    count_dict = defaultdict(int)
+
+    csv_col = ["name","dark_side","majority_label","ebm_label","ebm_p_val"]
+    csv_rows = [the_gal.name,dark_side_label, '', disparte_info[0],disparte_info[2][disparte_info[0]]]
+    for band_pair in disparte_info[-1]:
+        csv_col.extend([band_pair,"{}_p_val".format(band_pair)])
+        csv_rows.extend(disparte_info[-1][band_pair])
+        count_dict[disparte_info[-1][band_pair][0]] += 1
+
+    count_dict = dict(count_dict)
+
+    if len(count_dict) == 1:
+        csv_rows[2] = list(count_dict.keys())[0]
+    elif count_dict[list(count_dict.keys())[0]] > count_dict[list(count_dict.keys())[1]]:
+        csv_rows[2] = list(count_dict.keys())[0]
+    elif count_dict[list(count_dict.keys())[0]] < count_dict[list(count_dict.keys())[1]]:
+        csv_rows[2] = list(count_dict.keys())[1]
+    
+    write_csv(output_csv_path,csv_col,[csv_rows])
 
 
 if __name__ == "__main__":
     dark_side_labels = read_spin_parity_galaxies_label_from_csv(get_dark_side_csv_path())
-    if folder_name == "figure8" and "IC 2101" in dark_side_labels:
-        dark_side_labels["IC2101"] = dark_side_labels["IC 2101"]
+    if folder_name == "figure8" and "IC2101" in dark_side_labels:
+        dark_side_labels["IC 2101"] = dark_side_labels["IC2101"]
 
     setup_output_directories()
 
@@ -260,8 +283,7 @@ if __name__ == "__main__":
     for name in get_galaxy_list():
         print(i,name)
         i += 1
-        #try:
-        if True:
+        try:
             save_vis_path = ''
             if visualize_gals: 
                 save_vis_path=get_save_vis_path(name)
@@ -270,11 +292,39 @@ if __name__ == "__main__":
                 paper_dark_side_label = dark_side_labels[name]
             else:
                 continue
+            
+            #ds = "C:\\Users\\school\\Desktop\\disparate_side"
+            #output_csv_path = os.path.join(ds,folder_name,"{}.csv".format(name))
+            #if os.path.isfile(output_csv_path): continue
+
             #else:
             #    paper_dark_side_label = "placeholder"
             if use_panstarrs:
                 the_gal = run_panstarrs(name, get_fits_path, save_vis_path=save_vis_path,dark_side_label=paper_dark_side_label,color_image_path=get_color_image_path(name)) #PANSTARRS
-                run_most_disparate_side_script_on_galaxy(the_gal)
+
+                if get_disparate_sides:
+                    positive_one_ebm, negative_one_ebm = run_ebm(the_gal)
+
+                    if positive_one_ebm == min(positive_one_ebm,negative_one_ebm):
+                        print(name,the_gal.pos_side_label,positive_one_ebm)
+                    else:
+                        print(name,the_gal.neg_side_label,negative_one_ebm)
+                    
+                    #print(the_gal.pos_side_label,positive_one_ebm,the_gal.neg_side_label,negative_one_ebm)
+                    #the_gal.disparate_sides_vote = run_most_disparate_side_script_on_galaxy(the_gal)
+                    """
+                    if the_gal.disparate_sides_vote == None: continue
+                    
+                    ds = "C:\\Users\\school\\Desktop\\disparate_side"
+                    output_csv_path = os.path.join(ds,folder_name,"{}.csv".format(the_gal.name))
+
+                    if not os.path.isfile(output_csv_path):
+                        run_ebm(the_gal)
+                        dsv_info = the_gal.disparate_sides_vote.get_info(the_gal.pos_side_label,the_gal.neg_side_label)
+                        print(dsv_info)
+                        disparate_csv(the_gal,dsv_info,paper_dark_side_label,output_csv_path)
+                        break
+                    """
                 ###make_diff_image_example_for_paper(the_gal) #for paper
                 ###output_normed_pixels_table_for_ebm(the_gal, folder_name) #for outputting normed pixels
                 #break
@@ -294,12 +344,13 @@ if __name__ == "__main__":
                 the_gal = run_sdss(name, get_fits_path, save_vis_path=save_vis_path, dark_side_label=paper_dark_side_label) #SDSS
             the_gals.append(the_gal)
             #break
-        #except Exception as e:
-        else:
+        except Exception as e:
             print("Error when running on",name,e)
             #break
             #break
-        break
+        #if i > 1:
+        #    break
+        #break
 
     if make_csv:
         if use_panstarrs:
