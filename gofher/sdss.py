@@ -2,8 +2,10 @@ import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
 import matplotlib
 matplotlib.use('Agg')  #for memory leak in plt backend: https://stackoverflow.com/a/73698657/13544635
+"""
 
 from gofher import normalize_array
 from file_helper import write_csv

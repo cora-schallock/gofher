@@ -56,8 +56,8 @@ def run_panstarrs(name,fits_path,save_vis_path='', dark_side_label='', color_ima
     if save_vis_path != '':
         visualize_panstarrs(the_gal,save_vis_path,color_image_path)
 
-    pa = "C:\\Users\\school\\Desktop\\diff_output\\{}_diff.png".format(the_gal.name)
-    visualize_panstarrs_diff(the_gal,pa,color_image_path)
+    ##pa = "C:\\Users\\school\\Desktop\\diff_output\\{}_diff.png".format(the_gal.name)
+    ##visualize_panstarrs_diff(the_gal,pa,color_image_path)
     
     return the_gal
 

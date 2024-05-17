@@ -3,8 +3,15 @@ import subprocess
 import sys
 import pathlib
 import csv
+import copy
+import numpy as np
 
-DISPARATE_SIDES_DIR = "./most-disparate-side.sh"
+from gofher import normalize_array
+from galaxy import galaxy
+from file_helper import write_csv
+
+DISPARATE_SIDES_DIR = "disparate_sides"
+#DISPARATE_SIDES_DIR = "./most-disparate-side.sh"
 #pa = "NGC2841n.tsv"
 #pa = "IC1151n.tsv"
 #pa = "NGC1056.tsv"
@@ -49,8 +56,8 @@ class disparate_sides_vote:
             if len(line) >= 6:
                 try:
                     label = int(line[1])
-                    ebm_p_val = float(line[2])
-                    p_val = float(line[4])
+                    ebm_p_val = float(line[4])
+                    p_val = float(line[10])
 
                     if label == 1:
                         self.side_1_ebm_p_val = ebm_p_val
@@ -67,6 +74,33 @@ class disparate_sides_vote:
         print(self.side_0_naive_p_val)
         print(self.side_1_naive_p_val)
 
+    def get_info(self,pos_label,neg_label):
+        best_side_label = ''
+        worst_side_label = ''
+        ebm_pvalue_dict = dict()
+        naive_pvalue_dict = dict()
+
+        if self.side_0_ebm_p_val != None and self.side_0_naive_p_val != None:
+            ebm_pvalue_dict[neg_label] = self.side_0_ebm_p_val
+            naive_pvalue_dict[neg_label] = self.side_0_naive_p_val
+        else:
+            ebm_pvalue_dict[neg_label] = 1.0
+            naive_pvalue_dict[neg_label] = 1.0
+
+        if self.side_1_ebm_p_val != None and self.side_1_naive_p_val != None:
+            ebm_pvalue_dict[pos_label] = self.side_1_ebm_p_val
+            naive_pvalue_dict[pos_label] = self.side_1_naive_p_val
+        else:
+            ebm_pvalue_dict[pos_label] = 1.0
+            naive_pvalue_dict[pos_label] = 1.0
+
+        best_side_label = min(ebm_pvalue_dict, key = ebm_pvalue_dict.get)
+        worst_side_label = max(ebm_pvalue_dict, key = ebm_pvalue_dict.get)
+
+        return [best_side_label,worst_side_label,ebm_pvalue_dict,naive_pvalue_dict]
+
+        
+
 
 
 
@@ -76,10 +110,17 @@ def is_windows():
 def is_linux():
     return os.name == "posix"
 
-def run_disparate_sides():
-    old_working_dir = os.getcwd()
-    new_working_dir = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(new_working_dir)
+def parse_most_disparate_side_output(output):
+    parsed_output = output.decode("utf-8").strip().split("\n")
+    parsed_output = list(map(lambda x: x.replace('\t', ' ').replace('(', '').replace(')', '').replace(',', '').replace(':','').strip().split(' '), parsed_output)) #remove tabs, parenthesis, commas, and colons
+    parsed_output = list(map(lambda x: list(filter(lambda y: len(y) != 0, x)), parsed_output)) #remove empty entries in list
+    return parsed_output
+
+
+def run_disparate_sides_on_tsv(tsv_path):
+    #old_working_dir = os.getcwd()
+    #new_working_dir = os.path.dirname(os.path.realpath(__file__))
+    #os.chdir(new_working_dir)
     #./most-disparate-side.sh -ebm ~/SpArcFiRe/regression-tests/disparate-sides/NGC2841n.tsv
     #os.chdir('gofher/disparate_side')
 
@@ -92,7 +133,7 @@ def run_disparate_sides():
         #['cmd', '/c', 'ubuntu2204', 'run', 'ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = proc.communicate()
         rc = proc.returncode
-        #print(str(output))
+        print(str(output))
         parsed_output = output.decode("utf-8").strip().split("\n") #decode bytes object to string using utf-8 encoding; strip spaces from ends, split on new line char
         parsed_output = list(map(lambda x: x.replace('\t', ' ').replace('(', '').replace(')', '').replace(',', '').replace(':','').strip().split(' '), parsed_output)) #remove tabs, parenthesis, commas, and colons
         parsed_output = list(map(lambda x: list(filter(lambda y: len(y) != 0, x)), parsed_output)) #remove empty entries in list
@@ -117,6 +158,117 @@ def run_disparate_sides():
  
         dsv = disparate_sides_vote(parsed_output[:-3],parsed_output[-3],parsed_output[-2:])
 
+def run_most_disparate_side_script_on_galaxy(the_gal: galaxy):
+    to_diff_mask = the_gal.create_ellipse()
+    normed_pixels = dict()
+
+    for band in the_gal.bands:
+        the_band = the_gal[band]
+        normed_pixels[band] = the_band.data
+
+        if the_band.valid_pixel_mask is None: the_band.construct_valid_pixel_mask()
+        valid_pixel_mask = copy.deepcopy(the_band.valid_pixel_mask)
+        to_diff_mask = np.logical_and(to_diff_mask,valid_pixel_mask)
+
+    pos_mask,neg_mask = the_gal.create_bisection()
+    
+    csv_bands = list(normed_pixels.keys())
+    csv_enteries = np.zeros((len(normed_pixels)+1,np.count_nonzero(to_diff_mask)))
+    for i in range(len(csv_bands)):
+        csv_enteries[i] = normalize_array(normed_pixels[csv_bands[i]],to_diff_mask)[to_diff_mask]
+    csv_enteries[-1] = pos_mask[to_diff_mask]
+    csv_bands.append('side')
+
+    old_working_dir = os.getcwd()
+    new_working_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),DISPARATE_SIDES_DIR)
+
+    csv_file_name = "{}.csv".format(the_gal.name)
+    tsv_file_name = "{}.tsv".format(the_gal.name)
+
+    
+    csv_path = os.path.join(new_working_dir,csv_file_name)
+    if os.path.isfile(csv_path): os.remove(csv_path)
+
+    tsv_path = os.path.join(new_working_dir,csv_file_name)
+    if os.path.isfile(tsv_path): os.remove(tsv_path)
+
+    to_write = csv_enteries.T.tolist()
+    for i in range(len(to_write)):
+        to_write[i][-1] = int(to_write[i][-1])
+
+    write_csv(csv_path,csv_bands,to_write)
+
+    os.chdir(new_working_dir)
+    
+    parsed_output = None
+
+
+    if is_windows():
+        proc = subprocess.Popen(
+            ['cmd', '/c', 'ubuntu2204', 'run', 'export PATH=$(pwd):$PATH', ';', "dos2unix", csv_file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = proc.communicate()
+        rc = proc.returncode
+        if rc != 0:
+            print("Error running dos2unix:", error.decode("utf-8"))
+            os.chdir(old_working_dir)
+            return None
+
+        proc = subprocess.Popen(
+            ['cmd', '/c', 'ubuntu2204', 'run', 'export PATH=$(pwd):$PATH', ';', "csv2tsv", csv_file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = proc.communicate()
+        rc = proc.returncode
+        if rc != 0:
+            print("Error running csv2tsv:", error.decode("utf-8"))
+            os.chdir(old_working_dir)
+            return None
+        
+        if os.path.isfile(tsv_file_name):
+            print("tsv {} does not exist in {}".format(tsv_file_name,new_working_dir))
+            os.chdir(old_working_dir)
+            return None
+        
+        proc = subprocess.Popen(
+            ['cmd', '/c', 'ubuntu2204', 'run', 'export PATH=$(pwd):$PATH', ';', "./most-disparate-side.sh", "-ebm",  tsv_file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = proc.communicate()
+        rc = proc.returncode
+        if rc != 0:
+            print("Error running ./most-disparate-side.sh:", error.decode("utf-8"))
+            os.chdir(old_working_dir)
+            return None
+
+        parsed_output = parse_most_disparate_side_output(output)
+    elif is_linux():
+        proc = subprocess.Popen(
+            ["csv2tsv", csv_file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        output, error = proc.communicate()
+        rc = proc.returncode
+        if rc != 0:
+            print("Error running csv2tsv:", error.decode("utf-8"))
+            os.chdir(old_working_dir)
+            return None
+        
+        proc = subprocess.Popen(
+            ["./most-disparate-side.sh", "-ebm", tsv_file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = proc.communicate()
+        rc = proc.returncode
+        if rc != 0:
+            print("Error running ./most-disparate-side.sh:", error.decode("utf-8"))
+            os.chdir(old_working_dir)
+            return None
+    else:
+        print("Error must be running on Windows (via WSL) or Linux natively")
+        return None
+
+    dsv = disparate_sides_vote(parsed_output[:-3],parsed_output[-3],parsed_output[-2:])
+    dsv_info = dsv.get_info(the_gal.pos_side_label,the_gal.neg_side_label)
+    print(dsv_info)
+
+    
+
+
+
+"""
 def convert_normed_csv_to_normed_tsv(csv_path,tsv_path):
     all_rows=[]
     is_header = True
@@ -136,10 +288,11 @@ def convert_normed_csv_to_normed_tsv(csv_path,tsv_path):
     with open(tsv_path, 'w', newline='') as f_output:
         tsv_output = csv.writer(f_output, delimiter='\t')
         tsv_output.writerows(all_rows)
+"""
 
-csv_path = 'C:\\Users\\school\\Desktop\\diff_output\\files_for_meeting\\NGC157.csv'
-tsv_path = 'C:\\Users\\school\\Desktop\\diff_output\\files_for_meeting\\NGC157.tsv'    
-convert_normed_csv_to_normed_tsv(csv_path,tsv_path)
+#csv_path = 'C:\\Users\\school\\Desktop\\diff_output\\files_for_meeting\\NGC157.csv'
+#tsv_path = 'C:\\Users\\school\\Desktop\\diff_output\\files_for_meeting\\NGC157.tsv'    
+#convert_normed_csv_to_normed_tsv(csv_path,tsv_path)
 """
 def run_sextractor(fits_path,output_path='output.txt'):
 

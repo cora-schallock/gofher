@@ -77,6 +77,8 @@ class galaxy_band_pair:
         self.classification_label = ""
         self.classification_score = 0
 
+        self.paper_classification = 0
+
     def run(self,pos_mask,neg_mask):
         """split diff_image into pos/neg side"""
         pos_area = np.logical_and(pos_mask,self.diff_image_mask)
@@ -106,8 +108,10 @@ class galaxy_band_pair:
         
         if correct_label_letter_count > incorrect_label_letter_count and correct_label_letter_count > 1:
             self.classification_score =  1
+            self.paper_classification = self.classification * -1 #this is flipped, see -np.sign(mean_dif)
         elif incorrect_label_letter_count > correct_label_letter_count and incorrect_label_letter_count > 1:
             self.classification_score =  -1
+            self.paper_classification = self.classification #* -1
         else:
             self.classification_score = 0
 

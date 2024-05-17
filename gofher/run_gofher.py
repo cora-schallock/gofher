@@ -6,6 +6,7 @@ from run_gofher_on_a_galaxy import run_sdss, run_panstarrs
 from sdss import create_sdss_csv, SDSS_BANDS_IN_ORDER
 from panstarrs import create_panstarrs_csv, PANSTARRS_BANDS_IN_ORDER
 from file_helper import check_if_folder_exists_and_create, write_tsv
+from disparate_sides import run_most_disparate_side_script_on_galaxy
 
 use_panstarrs = True
 
@@ -27,7 +28,7 @@ else:
     output_folder_name = "gofher_sdss_sans_u" #SDSS
 
 #folder_name = "table3"
-folder_name = "figure10"
+folder_name = "figure8"
 #path_to_output = "C:\\Users\\school\\Desktop\\gofher_output_refactor"
 path_to_output = "E:\\grad_school\\research\\spin_parity_panstarrs"
 
@@ -52,7 +53,7 @@ def get_color_image_path(name):
 
 def get_dark_side_csv_path():
     csv_path = "C:\\Users\\school\\Desktop\\github\\spin-parity-catalog\\table_info\\csv_format_of_table\\"
-    pa = "4" #folder_name.strip()[-1]
+    pa = "2" #folder_name.strip()[-1]
     return os.path.join(csv_path,"table_{}.csv".format(pa))
 
 def setup_output_directories():
@@ -224,7 +225,7 @@ def make_diff_image_example_for_paper(the_gal):
 
 if __name__ == "__main__":
     dark_side_labels = read_spin_parity_galaxies_label_from_csv(get_dark_side_csv_path())
-    if folder_name == "table2" and "IC 2101" in dark_side_labels:
+    if folder_name == "figure8" and "IC 2101" in dark_side_labels:
         dark_side_labels["IC2101"] = dark_side_labels["IC 2101"]
 
     setup_output_directories()
@@ -250,26 +251,30 @@ if __name__ == "__main__":
     PGC46767: 400
     PGC49906: 200"""
 
-    the_gals = ["NGC3367"]
+    #the_gals = ["NGC3367"]
 
-    test_gals = list(map(lambda x: x.strip().split(':')[0],new_figure_9_gals.strip().split('\n')))
+    #test_gals = list(map(lambda x: x.strip().split(':')[0],new_figure_9_gals.strip().split('\n')))
 
     the_gals = []
     i = 1
     for name in get_galaxy_list():
         print(i,name)
         i += 1
-        try:
+        #try:
+        if True:
             save_vis_path = ''
             if visualize_gals: 
                 save_vis_path=get_save_vis_path(name)
 
             if name in dark_side_labels:
                 paper_dark_side_label = dark_side_labels[name]
+            else:
+                continue
             #else:
             #    paper_dark_side_label = "placeholder"
             if use_panstarrs:
                 the_gal = run_panstarrs(name, get_fits_path, save_vis_path=save_vis_path,dark_side_label=paper_dark_side_label,color_image_path=get_color_image_path(name)) #PANSTARRS
+                run_most_disparate_side_script_on_galaxy(the_gal)
                 ###make_diff_image_example_for_paper(the_gal) #for paper
                 ###output_normed_pixels_table_for_ebm(the_gal, folder_name) #for outputting normed pixels
                 #break
@@ -289,10 +294,12 @@ if __name__ == "__main__":
                 the_gal = run_sdss(name, get_fits_path, save_vis_path=save_vis_path, dark_side_label=paper_dark_side_label) #SDSS
             the_gals.append(the_gal)
             #break
-        except Exception as e:
+        #except Exception as e:
+        else:
             print("Error when running on",name,e)
             #break
             #break
+        break
 
     if make_csv:
         if use_panstarrs:

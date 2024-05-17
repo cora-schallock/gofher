@@ -5,10 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+"""
 import matplotlib
 matplotlib.use('Agg') #for memory leak in plt backend: https://stackoverflow.com/a/73698657/13544635
-
+"""
 from galaxy import galaxy, galaxy_band, construct_band_pair_key
+
 
 DEFAULT_POSITIVE_RGB_VECTOR = [60/255,179/255,113/255] #mediumseagreen
 DEFAULT_NEGATIVE_RGB_VECTOR = [240/255,128/255,125/255] #lightcoral
