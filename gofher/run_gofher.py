@@ -7,6 +7,9 @@ from sdss import create_sdss_csv, SDSS_BANDS_IN_ORDER
 from panstarrs import create_panstarrs_csv, PANSTARRS_BANDS_IN_ORDER
 from file_helper import check_if_folder_exists_and_create, write_tsv, write_csv
 from disparate_sides import run_most_disparate_side_script_on_galaxy, run_ebm
+from galaxy import galaxy
+
+from spin_parity import pos_neg_label_from_theta
 
 use_panstarrs = True
 
@@ -29,7 +32,7 @@ else:
     output_folder_name = "gofher_sdss_sans_u" #SDSS
 
 #folder_name = "table3"
-folder_name = "figure8"
+folder_name = "figure9"
 #path_to_output = "C:\\Users\\school\\Desktop\\gofher_output_refactor"
 path_to_output = "E:\\grad_school\\research\\spin_parity_panstarrs"
 
@@ -54,7 +57,7 @@ def get_color_image_path(name):
 
 def get_dark_side_csv_path():
     csv_path = "C:\\Users\\school\\Desktop\\github\\spin-parity-catalog\\table_info\\csv_format_of_table\\"
-    pa = "2" #folder_name.strip()[-1]
+    pa = "3" #folder_name.strip()[-1]
     return os.path.join(csv_path,"table_{}.csv".format(pa))
 
 def setup_output_directories():
@@ -246,6 +249,41 @@ def disparate_csv(the_gal,disparte_info,dark_side_label,output_csv_path):
     write_csv(output_csv_path,csv_col,[csv_rows])
 
 
+def get_ebm_row(the_gal: galaxy, dark_label):
+    positive_one_ebm, negative_one_ebm = run_ebm(the_gal)
+
+    label = ''
+    opposite = ''
+    the_row = []
+
+    if positive_one_ebm == min(positive_one_ebm,negative_one_ebm):
+        the_row =  [name,dark_label,the_gal.pos_side_label,positive_one_ebm]
+        label = the_gal.pos_side_label
+        opposite = the_gal.neg_side_label
+    else:
+        the_row =  [name,dark_label,the_gal.neg_side_label,negative_one_ebm]
+        label = the_gal.neg_side_label
+        opposite = the_gal.pos_side_label
+
+    correct_label_letter_count = len(set([*label.lower()]).union([*dark_label.lower()]))
+    incorrect_label_letter_count = len(set([*opposite.lower()]).union([*dark_label.lower()]))
+        
+    if correct_label_letter_count > incorrect_label_letter_count and correct_label_letter_count > 1:
+        the_row.append(-1)  #this is flipped, see -np.sign(mean_dif)
+        #self.classification_score =  1
+        #self.paper_classification = self.classification * -1 #this is flipped, see -np.sign(mean_dif)
+    elif incorrect_label_letter_count > correct_label_letter_count and incorrect_label_letter_count > 1:
+        the_row.append(1)  #this is flipped, see -np.sign(mean_dif)
+        ##self.paper_classification = self.classification #* -1
+    else:
+        the_row.append(0)
+
+    return the_row
+
+    
+    #self.gofher_params.theta
+
+
 if __name__ == "__main__":
     dark_side_labels = read_spin_parity_galaxies_label_from_csv(get_dark_side_csv_path())
     if folder_name == "figure8" and "IC2101" in dark_side_labels:
@@ -278,6 +316,8 @@ if __name__ == "__main__":
 
     #test_gals = list(map(lambda x: x.strip().split(':')[0],new_figure_9_gals.strip().split('\n')))
 
+    ebm_rows = []
+
     the_gals = []
     i = 1
     for name in get_galaxy_list():
@@ -301,18 +341,20 @@ if __name__ == "__main__":
             #    paper_dark_side_label = "placeholder"
             if use_panstarrs:
                 the_gal = run_panstarrs(name, get_fits_path, save_vis_path=save_vis_path,dark_side_label=paper_dark_side_label,color_image_path=get_color_image_path(name)) #PANSTARRS
+                the_row = get_ebm_row(the_gal, paper_dark_side_label)
+                ebm_rows.append(the_row)
+                """
+                    if get_disparate_sides:
+                        positive_one_ebm, negative_one_ebm = run_ebm(the_gal)
 
-                if get_disparate_sides:
-                    positive_one_ebm, negative_one_ebm = run_ebm(the_gal)
-
-                    if positive_one_ebm == min(positive_one_ebm,negative_one_ebm):
-                        print(name,the_gal.pos_side_label,positive_one_ebm)
-                    else:
-                        print(name,the_gal.neg_side_label,negative_one_ebm)
+                        if positive_one_ebm == min(positive_one_ebm,negative_one_ebm):
+                            print(name,the_gal.pos_side_label,positive_one_ebm)
+                        else:
+                            print(name,the_gal.neg_side_label,negative_one_ebm)
                     
                     #print(the_gal.pos_side_label,positive_one_ebm,the_gal.neg_side_label,negative_one_ebm)
                     #the_gal.disparate_sides_vote = run_most_disparate_side_script_on_galaxy(the_gal)
-                    """
+
                     if the_gal.disparate_sides_vote == None: continue
                     
                     ds = "C:\\Users\\school\\Desktop\\disparate_side"
@@ -324,7 +366,7 @@ if __name__ == "__main__":
                         print(dsv_info)
                         disparate_csv(the_gal,dsv_info,paper_dark_side_label,output_csv_path)
                         break
-                    """
+                """
                 ###make_diff_image_example_for_paper(the_gal) #for paper
                 ###output_normed_pixels_table_for_ebm(the_gal, folder_name) #for outputting normed pixels
                 #break
@@ -348,7 +390,7 @@ if __name__ == "__main__":
             print("Error when running on",name,e)
             #break
             #break
-        #if i > 1:
+        #if i > 10:
         #    break
         #break
 
@@ -359,3 +401,7 @@ if __name__ == "__main__":
         else:
             the_band_pairs = list(itertools.combinations(SDSS_BANDS_IN_ORDER, 2)) #SDSS
             create_sdss_csv(the_gals,the_band_pairs,get_csv_out_path())
+
+    if get_disparate_sides:
+        disparate_csv = "E:\\grad_school\\research\\spin_parity_panstarrs\\{}_ebm.csv".format(folder_name)
+        write_csv(disparate_csv,['name','paper_label','ebm_label','ebm_pval','score'],ebm_rows)
