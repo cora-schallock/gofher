@@ -1,6 +1,8 @@
 import numpy as np
-from mask import create_valid_pixel_mask
+
 from matrix import normalize_matrix
+from mask import create_valid_pixel_mask
+
 
 class MissingGalaxyBand(Exception):
     """exception for missing band"""

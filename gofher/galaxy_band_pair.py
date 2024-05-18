@@ -3,9 +3,9 @@ from scipy import stats
 from scipy.stats import ks_2samp
 
 from galaxy_band import galaxy_band
-from classify import pos_neg_label_from_theta
 from matrix import normalize_matrix
 from spin_parity import score_label
+from classify import pos_neg_label_from_theta
 
 class InvalidGalaxyBandPair(Exception):
     """exception for invalid band pair"""

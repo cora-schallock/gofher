@@ -1,9 +1,10 @@
 USE_BACKED_MATPLOT = False
 
 if USE_BACKED_MATPLOT:
-    import matplotlib
+    import matplotlib #https://matplotlib.org/stable/users/explain/figure/backends.html
     matplotlib.use('Agg') #for memory leak in plt backend: https://stackoverflow.com/a/73698657/13544635
-    
+  
+import matplotlib.image as mpimg 
 import matplotlib.pyplot as plt
 import itertools
 import numpy as np
@@ -32,7 +33,10 @@ def get_subplot_mosaic_strtings(bands_in_order):
     if len(band_keys)%2 != 0: band_keys.append('')
     return np.array(band_keys).reshape(int(len(band_keys)/2),2).tolist()
 
-def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label=''):
+def create_color_image(image_path):
+    pass
+
+def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path=''):
     """create and return a visualize of the galaxy"""
     mo_labels = [['color','ref_band']]
     mo_labels.extend(get_subplot_mosaic_strtings(bands_in_order))
@@ -116,4 +120,9 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
         axd['color'].set_title(the_gal.name)
         axd['ref_band'].set_title('ref band: {} vote:{}'.format(the_gal.ref_band,majority_vote))
 
-    plt.show()
+    if save_path != "":
+        fig.savefig(save_path, dpi = 300, bbox_inches='tight')
+        fig.clear()
+        plt.close(fig)
+    else:
+        plt.show()

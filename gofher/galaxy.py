@@ -1,13 +1,14 @@
+import copy
+import itertools
+import numpy as np
+
+from fits import read_fits
+from spin_parity import score_label
+from ebm import EmpiricalBrownsMethod
+from classify import pos_neg_label_from_theta
 from gofher_parameters import gofher_parameters
 from galaxy_band import galaxy_band, MissingGalaxyBand
 from galaxy_band_pair import galaxy_band_pair, InvalidGalaxyBandPair, construct_galaxy_band_pair_key
-from fits import read_fits
-from classify import pos_neg_label_from_theta
-from ebm import EmpiricalBrownsMethod
-
-import numpy as np
-import copy
-import itertools
 
 class galaxy:
     """a galaxy that gofher is to be run on"""
@@ -104,7 +105,6 @@ class galaxy:
         #find area to norm (by looking at all valid pixel masks), and then normalize each galaxy_band
         to_norm = copy.deepcopy(el_mask)
         for band in self.bands:
-            #print(self.bands[band].valid_pixel_mask)
             to_norm = np.logical_and(to_norm,copy.deepcopy(self.bands[band].valid_pixel_mask))
         self.area_to_diff = to_norm
         
@@ -151,9 +151,6 @@ class galaxy:
         elif len(neg_pvals) > 1:
             neg_ebm = EmpiricalBrownsMethod(np.array(neg_pixels),neg_pvals)
 
-        #print("here")
-        print(pos_ebm,neg_ebm)
-
         if neg_ebm < pos_ebm:
             return (self.pos_side_label, neg_ebm)
         else:
@@ -195,5 +192,20 @@ class galaxy:
             header.extend(['total','score'])
             row.extend([score,int(np.sign(score))])
         return (header,row)
+    
+    def get_ebm_csv_header_and_row(self,bands_in_order=[],paper_label=''):
+        header = ["name"]
+        row = [self.name]
+
+        (ebm_label, ebm_p) = self.run_ebm(bands_in_order)
+
+        if paper_label != '':
+             header.extend(["paper_label","ebm_label","ebm_pval","score"])
+             row.extend([paper_label,ebm_label,"{:.3E}".format(ebm_p),str(score_label(ebm_label,paper_label))])
+        else:
+            header.extend(["ebm_label","ebm_pval"])
+            row.extend([ebm_label,"{:.3E}".format(ebm_p)])
+
+        return (header,row)   
         
 

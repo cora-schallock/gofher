@@ -1,15 +1,16 @@
-import numpy as np
-from skimage import measure
-import matplotlib.pyplot as plt
-from scipy.stats import expon
 import copy
 import scipy
 import itertools
+import numpy as np
+from skimage import measure
+from scipy.stats import expon
 
-from sep_helper import run_sep
-from sersic import get_gopher_params_from_sersic_fit
-from gofher_parameters import gofher_parameters
 from galaxy import galaxy
+from sep_helper import run_sep
+from gofher_parameters import gofher_parameters
+from sersic import get_gopher_params_from_sersic_fit
+
+
 
 def calculate_dist(cm,center):
     """Distance norm"""
