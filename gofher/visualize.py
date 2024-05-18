@@ -78,7 +78,7 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
         axd[band_pair_key].plot(pos_x,pos_pdf/pos_pdf.sum(),c='green',alpha=0.5 ,linestyle='dashed')
         axd[band_pair_key].plot(neg_x,neg_pdf/neg_pdf.sum(),c='red',alpha=0.5 ,linestyle='dashed')
         axd[band_pair_key].set_xlim(mean-3*std,mean+3*std)
-        axd[band_pair_key].set_title("{}: {}".format(band_pair_key,band_pair.classification_label))
+        axd[band_pair_key].set_title("{}: {} (ks pval={:.3E})".format(band_pair_key,band_pair.classification_label,band_pair.ks_p_value))
         axd[band_pair_key].legend()
         
     if len(set(votes)) == 1:
@@ -115,3 +115,5 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     else:
         axd['color'].set_title(the_gal.name)
         axd['ref_band'].set_title('ref band: {} vote:{}'.format(the_gal.ref_band,majority_vote))
+
+    plt.show()

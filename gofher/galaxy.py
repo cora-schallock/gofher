@@ -3,6 +3,7 @@ from galaxy_band import galaxy_band, MissingGalaxyBand
 from galaxy_band_pair import galaxy_band_pair, InvalidGalaxyBandPair, construct_galaxy_band_pair_key
 from fits import read_fits
 from classify import pos_neg_label_from_theta
+from ebm import EmpiricalBrownsMethod
 
 import numpy as np
 import copy
@@ -120,6 +121,44 @@ class galaxy:
             the_band_pair.classify(self.gofher_params.theta)
         
         self.cumulative_score = int(np.sign(self.cumulative_classification_vote_count))
+
+    def run_ebm(self, bands_in_order = []):
+        pos_pixels = []
+        neg_pixels = []
+        pos_pvals = []
+        neg_pvals = []
+        for (first_band,base_band) in itertools.combinations(bands_in_order, 2):
+            band_pair_key = construct_galaxy_band_pair_key(first_band,base_band)
+            band_pair = self.get_band_pair(band_pair_key)
+
+            if int(band_pair.classification) == 1: #switched
+                pos_pixels.append(band_pair.diff_image[self.area_to_diff])
+                pos_pvals.append(band_pair.ks_p_value)
+            elif int(band_pair.classification) == -1:
+                neg_pixels.append(band_pair.diff_image[self.area_to_diff])
+                neg_pvals.append(band_pair.ks_p_value)
+
+        pos_ebm = 1.0
+        neg_ebm = 1.0
+
+        if len(pos_pvals) == 1:
+            pos_ebm = pos_pvals[0]
+        elif len(pos_pvals) > 1:
+            pos_ebm = EmpiricalBrownsMethod(np.array(pos_pixels),pos_pvals)
+
+        if len(neg_pvals) == 1:
+            neg_ebm = neg_pvals[0]
+        elif len(neg_pvals) > 1:
+            neg_ebm = EmpiricalBrownsMethod(np.array(neg_pixels),neg_pvals)
+
+        #print("here")
+        print(pos_ebm,neg_ebm)
+
+        if neg_ebm < pos_ebm:
+            return (self.pos_side_label, neg_ebm)
+        else:
+            return (self.neg_side_label, pos_ebm)
+
     
     def __getitem__(self, band):
         """getter funtion to get waveband of galaxy"""
@@ -147,14 +186,14 @@ class galaxy:
             band_pair = self.get_band_pair(band_pair_key)
 
             (bandpair_header,bandpair_row) = band_pair.get_verbose_csv_header_and_row(paper_label)
-            header.extend(list(map(lambda x: "{}-{}".format(band_pair_key,x),bandpair_header)))
+            header.extend(list(map(lambda x: "{}_{}".format(band_pair_key,x),bandpair_header)))
             row.extend(bandpair_row)
             if paper_label != '':
                 score += bandpair_row[-1]
         
         if paper_label != '':
-            header.append('score')
-            row.append(int(np.sign(score)))
+            header.extend(['total','score'])
+            row.extend([score,int(np.sign(score))])
         return (header,row)
         
 
