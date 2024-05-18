@@ -4,31 +4,16 @@ import matplotlib.pyplot as plt
 from scipy.stats import expon
 import copy
 import scipy
+import itertools
 
-from mask import create_ellipse_mask_from_gofher_params
 from sep_helper import run_sep
 from sersic import get_gopher_params_from_sersic_fit
 from gofher_parameters import gofher_parameters
+from galaxy import galaxy
 
 def calculate_dist(cm,center):
     """Distance norm"""
     return np.linalg.norm(np.array(cm)-np.array(center))
-
-def normalize_array(data,to_diff_mask):
-    """data - fits file (after read fits)
-    to_diff_mask - a single boolean mask indicating where to create diff (1's = included, 0's = ignored)"""
-    normalized = np.zeros(data.shape)
-    the_min = np.min(data[to_diff_mask]); the_max = np.max(data[to_diff_mask])
-    normalized[to_diff_mask] = (data[to_diff_mask]- the_min)/(the_max-the_min)
-    return normalized
-
-def create_diff_image(blue_data,red_data,to_diff_mask):
-    """first_data - fits data of bluer band
-    base_data - fits data of redder band
-    to_diff_mask - a single boolean mask indicating where to create diff (1's = included, 0's = ignored)"""
-    first_norm = normalize_array(blue_data,to_diff_mask)
-    base_norm = normalize_array(red_data,to_diff_mask)
-    return first_norm-base_norm
 
 def find_mask_spot_closest_to_center(the_mask,approx_center):
     """Locate spots in mask, and mask out all that are not center most"""
@@ -42,7 +27,7 @@ def find_mask_spot_closest_to_center(the_mask,approx_center):
 
     return blobs_labels==unique[np.argmin(dist_to_center)]
 
-def run_gofher_on_galaxy(the_gal,the_band_pairs):
+def run_default_gofher_ellipse_mask_fitting(the_gal,the_band_pairs):
     """Figure out which side is closer given diffenetial extinction reddening location"""
     #Step 1: Setup inital necessary variables:
     inital_gofher_parameters = gofher_parameters()
@@ -55,7 +40,8 @@ def run_gofher_on_galaxy(the_gal,the_band_pairs):
     inital_gofher_parameters.load_from_sep_object(the_el_sep)
 
     #Step 3: Create an ellipse mask using the inital_gofher_parameters
-    el_mask = create_ellipse_mask_from_gofher_params(inital_gofher_parameters,shape,r=1.0)
+    #el_mask = create_ellipse_mask_from_gofher_params(inital_gofher_parameters,shape,r=1.0)
+    el_mask = inital_gofher_parameters.create_ellipse_mask(shape,r=1.0)
 
     #Step 4: Using the inital_gofher_parameters fit two pdfs pdf_in (probability inside ellipse) and pdf_out (probability outside ellipse)
     inside_ellipse = data[np.logical_and(el_mask,the_gal[the_gal.ref_band].valid_pixel_mask)].flatten()
@@ -75,7 +61,6 @@ def run_gofher_on_galaxy(the_gal,the_band_pairs):
     the_mask = np.logical_and(center_mask,the_gal[the_gal.ref_band].valid_pixel_mask)
 
     #Step 6: Try fitting sersic:
-    #if True:
     try:
         the_sersic_mask = np.logical_and(the_mask,the_gal[the_gal.ref_band].valid_pixel_mask)
         the_gal.gofher_params = get_gopher_params_from_sersic_fit(inital_gofher_parameters,data,the_sersic_mask)
@@ -86,7 +71,29 @@ def run_gofher_on_galaxy(the_gal,the_band_pairs):
         the_gal.gofher_params = inital_gofher_parameters
         the_gal.encountered_sersic_fit_error = True
 
-    #Step 7: Now run gofher!
+    return the_gal
+
+def run_gofher(name,fits_path_function,blue_to_red_bands_in_order,ref_bands_in_order,paper_label=None):
+    """run gofher on a single sdss galaxy"""
+    the_gal = galaxy(name,paper_label)
+
+    for band in blue_to_red_bands_in_order:
+        the_gal.construct_band(band,fits_path_function(name,band))
+
+    for ref_band in ref_bands_in_order:
+        if the_gal.has_valid_band(ref_band):
+            the_gal.ref_band = ref_band
+            break
+    
+    if the_gal.ref_band == "":
+        raise ValueError("run_gofher")
+    
+    the_band_pairs = list(itertools.combinations(blue_to_red_bands_in_order, 2))
+
+    #Use Default Ellipse Mask Fitting Procdure:
+    the_gal = run_default_gofher_ellipse_mask_fitting(the_gal,the_band_pairs)
+
+    #run gofher on the galaxy
     the_gal.run_gofher(the_band_pairs)
 
     return the_gal

@@ -43,3 +43,11 @@ def create_minor_axis_angle_matrix(h,k,theta,shape):
     
     #Step 2) Create a matrix with angles [-pi/2,pi/2] from the minor axis:
     return np.abs(np.mod(angle_matrix,np.pi))-np.pi/2
+
+def normalize_matrix(data,to_diff_mask):
+    """data - fits file (after read fits)
+    to_diff_mask - a single boolean mask indicating where to create diff (1's = included, 0's = ignored)"""
+    normalized = np.zeros(data.shape)
+    the_min = np.min(data[to_diff_mask]); the_max = np.max(data[to_diff_mask])
+    normalized[to_diff_mask] = (data[to_diff_mask]- the_min)/(the_max-the_min)
+    return normalized

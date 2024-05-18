@@ -34,4 +34,4 @@ def pos_neg_label_from_theta(theta):
 
 def get_opposite_label(label):
     opposite_dict = {"n":"s","nw":"se","w":"e","sw":"ne","s":"n","se":"nw","e":"w","ne":"s"}
-    return opposite_dict.get("label.strip().lower()","")
+    return opposite_dict.get(label.strip().lower(),"")

@@ -6,24 +6,25 @@ from classify import pos_neg_label_from_theta
 
 import numpy as np
 import copy
+import itertools
 
 class galaxy:
     """a galaxy that gofher is to be run on"""
-    def __init__(self,name,dark_side=""):
+    def __init__(self,name,paper_label=None):
         self.name = name
         self.bands = {}
         self.band_pairs = {}
 
         self.area_to_diff = None
 
-        self.dark_side = dark_side
+        self.paper_label = paper_label
+
+        self.pos_side_label = ''
+        self.neg_side_label = ''
 
         self.ref_band = ""
         self.gofher_params = gofher_parameters()
         self.encountered_sersic_fit_error = False
-
-        self.pos_side_label = ''
-        self.neg_side_label = ''
 
         self.cumulative_classification_vote_count = 0
         self.cumulative_score = 0
@@ -61,14 +62,14 @@ class galaxy:
     def create_bisection(self,the_params=None, shape=None):
         """create bisection of the galaxy using (x,y) center and theta" from the_params (or self.gofher_params if none given)"""
         if the_params is None: the_params = self.gofher_params
-        if the_shape is None: the_shape = self.get_shape()
+        if shape is None: shape = self.get_shape()
 
         return the_params.create_bisection_mask(shape)
     
     def create_ellipse(self,the_params=None, shape=None, r=1.0):
         """create ellipse mask of the galaxy using (x,y) center, theta, and (a,b) ellipse extents" from the_params (or self.gofher_params if none given)"""
         if the_params is None: the_params = self.gofher_params
-        if the_shape is None: the_shape = self.get_shape()
+        if shape is None: shape = self.get_shape()
 
         return the_params.create_ellipse_mask(shape,r)
     
@@ -86,9 +87,9 @@ class galaxy:
         the_band_pair_key = construct_galaxy_band_pair_key(blue_band_key,red_band_key)
 
         band_pair = galaxy_band_pair(self.bands[blue_band_key],self.bands[red_band_key])
-        self.the_band_pair_key[the_band_pair_key] = band_pair
+        self.band_pairs[the_band_pair_key] = band_pair
 
-        band_pair.construct_diff_image(self)
+        band_pair.construct_diff_image()
 
         return band_pair
     
@@ -97,10 +98,13 @@ class galaxy:
         el_mask = self.create_ellipse()
         pos_mask, neg_mask = self.create_bisection()
 
+        self.pos_side_label, self.neg_side_label = pos_neg_label_from_theta(np.degrees(self.gofher_params.theta))
+
         #find area to norm (by looking at all valid pixel masks), and then normalize each galaxy_band
         to_norm = copy.deepcopy(el_mask)
         for band in self.bands:
-            to_norm = np.logical_and(to_norm,self.bands[band].valid_pixel_mask)
+            #print(self.bands[band].valid_pixel_mask)
+            to_norm = np.logical_and(to_norm,copy.deepcopy(self.bands[band].valid_pixel_mask))
         self.area_to_diff = to_norm
         
         for band in self.bands:
@@ -111,7 +115,7 @@ class galaxy:
 
             the_band_pair = self.construct_band_pair(first_band,base_band)
 
-            the_band_pair.run(pos_mask,neg_mask)
+            the_band_pair.run(pos_mask,neg_mask,self.area_to_diff)
             the_band_pair.fit_norm()
             the_band_pair.classify(self.gofher_params.theta)
         
@@ -124,3 +128,33 @@ class galaxy:
     def get_band_pair(self,band_pair_key) -> galaxy_band_pair:
         """given a band_pair key, get specified band_pair"""
         return self.band_pairs[band_pair_key]
+    
+    def get_verbose_csv_header_and_row(self,bands_in_order=[],paper_label=''):
+        header = ["name"]
+        row = [self.name]
+
+        if paper_label != '':
+            header.append("paper_label")
+            row.append(paper_label)
+
+        header.extend(["pos_label","neg_label"])
+        row.extend([self.pos_side_label,self.neg_side_label])
+
+        score = 0
+
+        for (first_band,base_band) in itertools.combinations(bands_in_order, 2):
+            band_pair_key = construct_galaxy_band_pair_key(first_band,base_band)
+            band_pair = self.get_band_pair(band_pair_key)
+
+            (bandpair_header,bandpair_row) = band_pair.get_verbose_csv_header_and_row(paper_label)
+            header.extend(list(map(lambda x: "{}-{}".format(band_pair_key,x),bandpair_header)))
+            row.extend(bandpair_row)
+            if paper_label != '':
+                score += bandpair_row[-1]
+        
+        if paper_label != '':
+            header.append('score')
+            row.append(int(np.sign(score)))
+        return (header,row)
+        
+

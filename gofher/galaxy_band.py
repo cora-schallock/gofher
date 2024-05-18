@@ -1,6 +1,6 @@
 import numpy as np
 from mask import create_valid_pixel_mask
-from gofher import normalize_array
+from matrix import normalize_matrix
 
 class MissingGalaxyBand(Exception):
     """exception for missing band"""
@@ -41,4 +41,4 @@ class galaxy_band:
         if not self.is_valid():
             raise ValueError("Can't normalize galaxy_band: {} - (make sure it has data and valid_pixel_mask)".format(self.band))
         to_diff_mask = np.logical_and(area_to_norm,self.valid_pixel_mask)
-        self.norm_data = normalize_array(self.data,to_diff_mask)
+        self.norm_data = normalize_matrix(self.data,to_diff_mask)
