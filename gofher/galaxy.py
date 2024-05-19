@@ -75,17 +75,17 @@ class galaxy:
 
         return the_params.create_ellipse_mask(shape,r)
     
-    def can_construct_band_pair(self,blue_band_key,red_band_key):
-        """checks if can construct a band_pair given a BLUER band first_band and REDDER band base_band"""
+    def can_construct_band_pair(self,blue_band_key: str,red_band_key: str):
+        """checks if can construct a band_pair given a BLUER band blue_band and REDDER band red_band"""
         if not self.has_band(blue_band_key) or not self.has_band(red_band_key): return False #check has data
         if not self[blue_band_key].is_valid() or not self[red_band_key].is_valid(): return False #check has data/pixel mask and right type
         if self[blue_band_key].get_shape() != self[red_band_key].get_shape(): return False #check matching size
         
         return True
     
-    def construct_band_pair(self,blue_band_key,red_band_key) -> galaxy_band_pair:
-        """creates a new band_pair given a BLUER band first_band and REDDER band base_band"""
-        if not self.can_construct_band_pair(blue_band_key,red_band_key): raise InvalidGalaxyBandPair("Can't construct band pair with first_band {} and base_band {}".format(blue_band_key,red_band_key))
+    def construct_band_pair(self,blue_band_key: str,red_band_key:str) -> galaxy_band_pair:
+        """creates a new band_pair given a BLUER band blue_band and REDDER band red_band"""
+        if not self.can_construct_band_pair(blue_band_key,red_band_key): raise InvalidGalaxyBandPair("Can't construct band pair with blue_band {} and red_band {}".format(blue_band_key,red_band_key))
         the_band_pair_key = construct_galaxy_band_pair_key(blue_band_key,red_band_key)
 
         band_pair = galaxy_band_pair(self.bands[blue_band_key],self.bands[red_band_key])
@@ -95,8 +95,14 @@ class galaxy:
 
         return band_pair
     
-    def run_gofher(self,the_ordered_band_pairs):
-        """run gofher on all valid band_apirs for the galaxy"""
+    def run_gofher(self,the_ordered_band_pairs: list):
+        """Run gofher pipeline on all waveband pairs composed of bands in provided list
+
+        Args:
+            the_ordered_band_pairs: wavebands to use in order of bluest to reddest
+                Note: Will only consider waveband pairs that have both the
+                blue and red band containted in the_ordered_band_pairs.
+        """
         el_mask = self.create_ellipse()
         pos_mask, neg_mask = self.create_bisection()
 
@@ -111,10 +117,10 @@ class galaxy:
         for band in self.bands:
             self.bands[band].normalize(self.area_to_diff)
 
-        for (first_band, base_band) in the_ordered_band_pairs:
-            if not self.can_construct_band_pair(first_band,base_band): continue
+        for (blue_band, red_band) in the_ordered_band_pairs:
+            if not self.can_construct_band_pair(blue_band,red_band): continue
 
-            the_band_pair = self.construct_band_pair(first_band,base_band)
+            the_band_pair = self.construct_band_pair(blue_band,red_band)
 
             the_band_pair.run(pos_mask,neg_mask,self.area_to_diff)
             the_band_pair.fit_norm()
@@ -123,12 +129,24 @@ class galaxy:
         self.cumulative_score = int(np.sign(self.cumulative_classification_vote_count))
 
     def run_ebm(self, bands_in_order = []):
+        """Calculate the most statistically signifcant red band
+
+        Uses Emperical Brown's Method to combine ks test pvalues from waveband pairs
+
+        Args:
+            bands_in_order: wavebands to use in order of bluest to reddest
+                Note: Will only consider waveband pairs that have both the
+                blue and red band containted in bands_in_order.
+        Returns:
+            (label,pval): label determined by ebm and ebm pval
+        """
+        
         pos_pixels = []
         neg_pixels = []
         pos_pvals = []
         neg_pvals = []
-        for (first_band,base_band) in itertools.combinations(bands_in_order, 2):
-            band_pair_key = construct_galaxy_band_pair_key(first_band,base_band)
+        for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
+            band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
             band_pair = self.get_band_pair(band_pair_key)
 
             if int(band_pair.classification) == 1: #switched
@@ -166,6 +184,17 @@ class galaxy:
         return self.band_pairs[band_pair_key]
     
     def get_verbose_csv_header_and_row(self,bands_in_order=[],paper_label=''):
+        """Generate galaxy's csv information
+
+        Args:
+            bands_in_order: wavebands to use in order of bluest to reddest
+                Note: Will only consider waveband pairs that have both the
+                blue and red band containted in bands_in_order.
+            paper_label (optional): the dark_side label in the spin parity catalog.
+                If provided includes scoring information.
+        Returns:
+            (header,row): galaxy's csv header and row
+        """
         header = ["name"]
         row = [self.name]
 
@@ -178,8 +207,8 @@ class galaxy:
 
         score = 0
 
-        for (first_band,base_band) in itertools.combinations(bands_in_order, 2):
-            band_pair_key = construct_galaxy_band_pair_key(first_band,base_band)
+        for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
+            band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
             band_pair = self.get_band_pair(band_pair_key)
 
             (bandpair_header,bandpair_row) = band_pair.get_verbose_csv_header_and_row(paper_label)
@@ -194,6 +223,17 @@ class galaxy:
         return (header,row)
     
     def get_ebm_csv_header_and_row(self,bands_in_order=[],paper_label=''):
+        """Generate galaxy's ebm csv information
+
+        Args:
+            bands_in_order: wavebands to use in order of bluest to reddest
+                Note: Will only consider waveband pairs that have both the
+                blue and red band containted in bands_in_order.
+            paper_label (optional): the dark_side label in the spin parity catalog.
+                If provided includes scoring information for considered waveband pairs.
+        Returns:
+            (header,row): galaxy's ebm csv header and row
+        """
         header = ["name"]
         row = [self.name]
 

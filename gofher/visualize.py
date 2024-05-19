@@ -28,8 +28,8 @@ def create_color_map_class(pos,neg,el):
 def get_subplot_mosaic_strtings(bands_in_order):
     """get the strings for the band pairs used in the mosaic plt plot"""
     band_keys = []
-    for (first_band,base_band) in itertools.combinations(bands_in_order, 2):
-        band_keys.append(construct_galaxy_band_pair_key(first_band,base_band))
+    for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
+        band_keys.append(construct_galaxy_band_pair_key(blue_band,red_band))
     if len(band_keys)%2 != 0: band_keys.append('')
     return np.array(band_keys).reshape(int(len(band_keys)/2),2).tolist()
 
@@ -51,8 +51,8 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     sum_of_squares = 0.0
     n = 0
 
-    for (first_band,base_band) in itertools.combinations(bands_in_order, 2):
-        band_pair_key = construct_galaxy_band_pair_key(first_band,base_band)
+    for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
+        band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
         band_pair = the_gal.get_band_pair(band_pair_key)
         elements = band_pair.diff_image[the_gal.area_to_diff]
 
@@ -66,8 +66,8 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     votes = []
     vote_outcome = "No vote"
     majority_vote = ''
-    for (first_band,base_band) in itertools.combinations(bands_in_order, 2):
-        band_pair_key = construct_galaxy_band_pair_key(first_band,base_band)
+    for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
+        band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
         pl = ''
         band_pair = the_gal.get_band_pair(band_pair_key)
         votes.append(band_pair.classification_label)
