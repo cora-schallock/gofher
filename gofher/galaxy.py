@@ -103,20 +103,29 @@ class galaxy:
                 Note: Will only consider waveband pairs that have both the
                 blue and red band containted in the_ordered_band_pairs.
         """
+
+        #1) Construct ellipse and bisection mask
         el_mask = self.create_ellipse()
         pos_mask, neg_mask = self.create_bisection()
 
+        #2) Figure out cardinal direction labels for pos and neg
+        #   side of bisection based on theta
         self.pos_side_label, self.neg_side_label = pos_neg_label_from_theta(np.degrees(self.gofher_params.theta))
 
-        #find area to norm (by looking at all valid pixel masks), and then normalize each galaxy_band
+        #3) find area to norm (by looking at all valid pixel masks)
+        #   and then normalize each galaxy_band
         to_norm = copy.deepcopy(el_mask)
         for band in self.bands:
             to_norm = np.logical_and(to_norm,copy.deepcopy(self.bands[band].valid_pixel_mask))
         self.area_to_diff = to_norm
-        
+
+        #4) normalize all wavebands
         for band in self.bands:
             self.bands[band].normalize(self.area_to_diff)
 
+        #5) iterate through all wavband pairs composes of bands
+        #   in the_ordered_band_pairs, create diff image and
+        #   then classify based on results
         for (blue_band, red_band) in the_ordered_band_pairs:
             if not self.can_construct_band_pair(blue_band,red_band): continue
 
@@ -125,7 +134,8 @@ class galaxy:
             the_band_pair.run(pos_mask,neg_mask,self.area_to_diff)
             the_band_pair.fit_norm()
             the_band_pair.classify(self.gofher_params.theta)
-        
+
+        #6) calcuylate cumulative score
         self.cumulative_score = int(np.sign(self.cumulative_classification_vote_count))
 
     def run_ebm(self, bands_in_order = []):
