@@ -18,7 +18,20 @@ DEFAULT_NEGATIVE_RGB_VECTOR = [240/255,128/255,125/255] #lightcoral
 DEFAULT_BAD_PIXEL_RGB_VECTOR = [169/255,169/255,169/255] #lightgrey
 
 def create_color_map_class(pos,neg,el):
-    """create a color map that sepearte pos/neg side inside ellipse from rest of data"""
+    """Generates a colormap for visualization purposes
+
+    Wavebandpairs (x,y) are ordered left-to-right top-to-bottom (2 per row)
+        x bluest to reddest band choosen first
+        y bluest to reddest band choosen second
+
+    Note: If c(n,2) where n=len(bands_in_order) is odd, adds extra
+        mosaic string in last row
+    
+    Args:
+        pos: one side of the bisection mask (called the pos_mask)
+        neg: the other side of the bisection mask (called the neg_mask)
+        el: the ellipse mask the gofher uses
+    """
     cmap_class = np.ones((pos.shape[0],pos.shape[1],3))*DEFAULT_BAD_PIXEL_RGB_VECTOR
     cmap_class[np.logical_and(pos,el)] = DEFAULT_POSITIVE_RGB_VECTOR
     cmap_class[np.logical_and(neg,el)] = DEFAULT_NEGATIVE_RGB_VECTOR
@@ -26,18 +39,40 @@ def create_color_map_class(pos,neg,el):
     return cmap_class
 
 def get_subplot_mosaic_strtings(bands_in_order):
-    """get the strings for the band pairs used in the mosaic plt plot"""
+    """Generates waveband pair keys to display in visualize
+
+    Wavebandpairs (x,y) are ordered left-to-right top-to-bottom (2 per row)
+        x bluest to reddest band choosen first
+        y bluest to reddest band choosen second
+
+    Note: If c(n,2) where n=len(bands_in_order) is odd, adds extra
+        mosaic string in last row
+    
+    Args:
+        bands_in_order: wavebands to use in order of bluest to reddest
+    """
     band_keys = []
     for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
         band_keys.append(construct_galaxy_band_pair_key(blue_band,red_band))
     if len(band_keys)%2 != 0: band_keys.append('')
     return np.array(band_keys).reshape(int(len(band_keys)/2),2).tolist()
 
-def create_color_image(image_path):
-    pass
-
 def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path=''):
-    """create and return a visualize of the galaxy"""
+    """Visualize the classification process gofher uses for determining label
+
+    Displays ellipse mask, bisection mask on refernce image and histograms
+    for all included waveband pairs.
+    
+    If paper_label is provided, includes if it agrees/disagrees.
+    
+    Note: Only considers waveband pairs composed of bands in bands_in_order
+    
+
+    Args:
+        color_image: the color refercne image that is displayed as thumbnail
+        bands_in_order: wavebands to use in order of bluest to reddest
+        save_path: if given path saves visualize image, if not displays it
+    """
     mo_labels = [['color','ref_band']]
     mo_labels.extend(get_subplot_mosaic_strtings(bands_in_order))
     height_ratios = [2] + [1] * int(len(mo_labels)-1) #only works if band_pair numbers is even
