@@ -13,11 +13,18 @@ from sersic import get_gopher_params_from_sersic_fit
 
 
 def calculate_dist(cm,center):
-    """Distance norm"""
+    """L2 Distance Norm"""
     return np.linalg.norm(np.array(cm)-np.array(center))
 
 def find_mask_spot_closest_to_center(the_mask,approx_center):
-    """Locate spots in mask, and mask out all that are not center most"""
+    """Uses connected regions to locate center most cluster
+
+        Args:
+            the_mask: the mask to locate closest cluster
+            approx_center: location of center
+        Returns:
+            mask of cluster closest to center
+    """
     shape=the_mask.shape
     all_labels = measure.label(the_mask) #https://scipy-lectures.org/packages/scikit-image/auto_examples/plot_labels.html
     blobs_labels = measure.label(all_labels, background=0)
@@ -28,8 +35,19 @@ def find_mask_spot_closest_to_center(the_mask,approx_center):
 
     return blobs_labels==unique[np.argmin(dist_to_center)]
 
-def run_default_gofher_ellipse_mask_fitting(the_gal,the_band_pairs):
-    """Figure out which side is closer given diffenetial extinction reddening location"""
+def run_default_gofher_parameters_fitting(the_gal):
+    """Finds gofher_parameters for the galaxy that will be used to generate the ellipse masks and bisection masks
+
+        Args:
+            shape: The shape of the ellipse mask
+            r: how much to scale semi-major/semi-minor axis length of ellipse
+                semi-major=r*a semi-minor=r*b
+        Returns:
+            the galaxy with gofher_parameters found using default fitting process
+    """
+
+    #See: Schallock et. al 2024 - Algorithm 1 Ellipse Mask Fitting
+
     #Step 1: Setup inital necessary variables:
     inital_gofher_parameters = gofher_parameters()
     data = copy.deepcopy(the_gal[the_gal.ref_band].data)
@@ -75,7 +93,19 @@ def run_default_gofher_ellipse_mask_fitting(the_gal,the_band_pairs):
     return the_gal
 
 def run_gofher(name,fits_path_function,blue_to_red_bands_in_order,ref_bands_in_order,paper_label=None):
-    """run gofher on a single sdss galaxy"""
+    """Runs gofher of a single galaxy
+
+        Args:
+            name: the name of the galaxy
+            fits_path_function: a function that takes in galaxy_name and waveband and returns the file paths of the fits files
+            blue_to_red_bands_in_order: a list of the name of wavebands in order of Bluest to Reddest wavebands
+            ref_bands_in_order: a list of the name of wavebands in order of priority [highest, 2nd_highest, ... 2nd_lowest, lowest]
+                of prefernce waveband is used as reference band
+            paper_label: the baseline near side label gofher is comparing its answer to
+                Important: If no baseline label, leave as none
+        Returns:
+            the galaxy
+    """
     the_gal = galaxy(name,paper_label)
 
     for band in blue_to_red_bands_in_order:
@@ -91,8 +121,8 @@ def run_gofher(name,fits_path_function,blue_to_red_bands_in_order,ref_bands_in_o
     
     the_band_pairs = list(itertools.combinations(blue_to_red_bands_in_order, 2))
 
-    #Use Default Ellipse Mask Fitting Procdure:
-    the_gal = run_default_gofher_ellipse_mask_fitting(the_gal,the_band_pairs)
+    #Use default gofher_parameter fitting:
+    the_gal = run_default_gofher_parameters_fitting(the_gal)
 
     #run gofher on the galaxy
     the_gal.run_gofher(the_band_pairs)

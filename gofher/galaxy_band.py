@@ -39,7 +39,14 @@ class galaxy_band:
             raise ValueError("Can't construct valid_pixel_mask for band: {} - Data needs to be an np.npdarry".format(self.band))
         self.valid_pixel_mask = create_valid_pixel_mask(self.data)
 
-    def normalize(self,area_to_norm=None):
+    def normalize(self,area_to_norm: np.ndarray):
+        """Normalize all pixels in area_to_norm so that values are in range [0,1], 0 if not in area_to_norm:
+        pos_side_mean, pos_side_std, neg_side_mean, neg_side_std, ks_d_stat, ks_p_val, classification_label, score?
+        
+        Args: 
+            area_to_norm: area mask to normalize values over
+                Note: if you want to normalize all valid pixels can define area_to_norm = np.ones(galaxy_band.data.shape).astype(bool)
+        """
         if not self.is_valid():
             raise ValueError("Can't normalize galaxy_band: {} - (make sure it has data and valid_pixel_mask)".format(self.band))
         to_diff_mask = np.logical_and(area_to_norm,self.valid_pixel_mask)

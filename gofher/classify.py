@@ -1,5 +1,10 @@
 def pos_neg_label_from_theta(theta):
-    """get pos/neg label from theta"""
+    """get cardinal labels for bisection
+    
+    Args: 
+        theta: angle of ellipse measured in degrees from positive X-axis of cartessian graph
+            going counter-clockwise
+    """
     new_theta = theta % 360
     pos = '-'
     neg = '-'
@@ -33,5 +38,10 @@ def pos_neg_label_from_theta(theta):
     return pos.upper(),neg.upper()
 
 def get_opposite_label(label):
-    opposite_dict = {"n":"s","nw":"se","w":"e","sw":"ne","s":"n","se":"nw","e":"w","ne":"s"}
+    """find the opposite cardinal direction label
+
+    Args: 
+        label: the cardinal direction label 
+    """
+    opposite_dict = {"n":"s","nw":"se","w":"e","sw":"ne","s":"n","se":"nw","e":"w","ne":"sw"}
     return opposite_dict.get(label.strip().lower(),"")

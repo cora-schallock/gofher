@@ -1,16 +1,39 @@
 import sep
 import numpy as np
 
-def calc_sep_size(a,b):
-    """calculate size of sep ellipse"""
+def calc_sep_size(a: float, b: float)-> float:
+    """Calculates area of ellipse
+    
+    Args:
+        a: semi-major axis length
+        b: semi-minor axis length
+        
+    Returns:
+        Area of ellipse
+    """
     return 3.14*a*b
 
-def calc_dist(cm_x,cm_y,el_x,el_y):
-    """calculate distnace away from a pixel"""
+def calc_dist(cm_x: float,cm_y: float, el_x: float,el_y: float):
+    """Run source extractor on a given galaxy
+    
+    Args:
+        cm_x: approximate center x cordinate of primary object of interest (used in heuristic)
+        cm_y: approximate center y cordinate of primary object of interest (used in heuristic)
+        el_x: x cordinate of current object
+        el_y: y cordinate of current object
+        
+    Returns:
+        distance of (el_x,el_y) from (cm_x,cm_y) using L2 norm
+    """
     return (((cm_x-el_x)*(cm_x-el_x)) + ((cm_y-el_y)*(cm_y-el_y)))**0.5
 
 def run_sep(data, cm_x, cm_y):
-    """run sep on a given galaxy"""
+    """Run source extractor on a given galaxy
+    
+    Args:
+        data: data to run source extraction on
+        cm_x: approximate center x cordinate of primary object of interest (used in heuristic)
+        cm_y: approximate center y cordinate of primary object of interest (used in heuristic)"""
     data = data.byteswap().newbyteorder()
     bkg = sep.Background(data)
     data_sub = data - bkg

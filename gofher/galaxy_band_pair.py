@@ -59,22 +59,41 @@ class galaxy_band_pair:
         self.classification = 0
         self.classification_label = ""
 
+        self._has_run = False
+        self._has_normed = False
+
     def construct_diff_image(self):
+        """Perform a pixel-by-pixel subtraction of normed blue_band by the normed red_band"""
         self.diff_image = self.blue_band.norm_data-self.red_band.norm_data
 
-    def run(self,pos_mask,neg_mask,area_to_compare):
-        """split diff_image into pos/neg side"""
+    def run(self,pos_mask: np.ndarray, neg_mask: np.ndarray, area_to_compare: np.ndarray):
+        """Split the difference image in half using bisection (only in area_to_compare) into pos side and neg side
+        
+        Args: 
+            pos_mask: the pos side of the bisection mask
+            neg_mask: the neg side of the bisection mask
+            area_to_compare: which areas to include when comparing diff image on pos/neg sides
+        """
         pos_area = np.logical_and(pos_mask,area_to_compare)
         neg_area = np.logical_and(neg_mask,area_to_compare)
 
         self.pos_side = self.diff_image[pos_area]
         self.neg_side = self.diff_image[neg_area]
 
-    def classify(self, theta):
-        """classify the band_pair and output a label
+        self._has_run = True
+
+    def classify(self, theta: float):
+        """Classifies the waveband pairs and sets the classification_label
+        
+        Args: 
+            theta: angle of ellipse measured in degrees
+                Important: This should match same angle as ellipse/bisection
         
         Important: Must be done after run() and fit_norm()
         """
+        if not self._has_run: raise ValueError("galaxy_band_pair.classify(): need to run method galaxy_band_pair.run() prior to fitting norm")
+        if not self._has_normed: raise ValueError("galaxy_band_pair.classify(): need to run method galaxy_band_pair.fit_norm() prior to fitting norm")
+
         pl, nl = pos_neg_label_from_theta(np.degrees(theta))
         mean_dif = np.sign(self.pos_fit_norm_mean-self.neg_fit_norm_mean)
 
@@ -82,10 +101,12 @@ class galaxy_band_pair:
         self.classification_label = nl if -np.sign(mean_dif) == -1.0 else pl
 
     def fit_norm(self):
-        """fit 2 normal distrobutions (one to the pos and one to the neg side) to the bisected diff_image
+        """Fit 2 normal distrobutions (one to the pos and one to the neg side) to the bisected diff_image
         
         Important: Must be done after run()
         """
+        if not self._has_run: raise ValueError("galaxy_band_pair.fit_norm(): need to run method galaxy_band_pair.run() prior to fitting norm")
+
         self.pos_fit_norm_mean, self.pos_fit_norm_std = stats.norm.fit(self.pos_side)
         self.neg_fit_norm_mean, self.neg_fit_norm_std = stats.norm.fit(self.neg_side)
 
@@ -93,20 +114,29 @@ class galaxy_band_pair:
         self.ks_d_stat = ks_score.statistic
         self.ks_p_value = ks_score.pvalue
 
-    def evaluate_fit_norm(self,samples=64):
-        """evaluate the normal by getting pdf of the fit normal"""
-        the_min = min(np.min(self.pos_side),np.min(self.neg_side))
-        the_max = max(np.max(self.pos_side),np.max(self.neg_side))
+        self._has_normed = True
 
-        pos_x=np.linspace(np.min(self.pos_side),np.max(self.neg_side),samples)
-        neg_x=np.linspace(np.min(self.pos_side),np.max(self.neg_side),samples)
+    def evaluate_fit_norm(self, samples=64):
+        """Classifies the waveband pairs and sets the classification_label
+        
+        Args: 
+            samples: number of times each curve is sampled
+        """
+        pos_x=np.linspace(np.min(self.pos_side),np.max(self.pos_side),samples)
+        neg_x=np.linspace(np.min(self.neg_side),np.max(self.neg_side),samples)
         pos_pdf = stats.norm.pdf(pos_x, self.pos_fit_norm_mean, self.pos_fit_norm_std)
         neg_pdf = stats.norm.pdf(neg_x, self.neg_fit_norm_mean, self.neg_fit_norm_std)
 
         return pos_x, pos_pdf, neg_x, neg_pdf
     
     def get_verbose_csv_header_and_row(self,paper_label=''):
-        #pos_side_mean, pos_side_std, neg_side_mean, neg_side_std, ks_d_stat, ks_p_val, classification_label, self.classification_label (if paper_label provided)
+        """Get csv information in the following order:
+        pos_side_mean, pos_side_std, neg_side_mean, neg_side_std, ks_d_stat, ks_p_val, classification_label, score?
+        
+        Args: 
+            paper_label: baseline label for comparison, if no baseline leave blank.
+                Important: If provided score will be included, calcualted from score_label()
+        """
         header = ["pos_mean","pos_std","neg_mean","neg_std","ks_stat","ks_pval","label"]
         row = [self.pos_fit_norm_mean,
                 self.pos_fit_norm_std,

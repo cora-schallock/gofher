@@ -35,56 +35,110 @@ class galaxy:
 
         self.disparate_sides_vote = None
 
-    def has_band(self, band):
-        """checks if galaxy has sepcific wave band given name"""
+    def has_band(self, band: str) -> bool:
+        """Check if galaxy has waveband with name
+        
+        Args:
+            band: the name of the waveband
+        """
         return band in self.bands
-    
-    def has_valid_band(self, band):
-        """checks if has wave band and if wave band is valid"""
+
+    def has_valid_band(self, band: str) -> bool:
+        """Check if galaxy's waveband is_valid
+        
+        Args:
+            band: the name of the waveband
+        """
         return band in self.bands and self[band].is_valid()
     
-    def has_valid_ref_band(self):
-        """checks if galaxy has reference band and is valid"""
+    def has_valid_ref_band(self) -> bool:
+        """Checks if galaxy has reference band and is valid"""
         return self.has_valid_band(self.ref_band)
     
     def get_shape(self, band=None):
-        """get the shape of the data for a given band (or of ref_band if none given)"""
+        """Get the shape of the data for a given band or ref_band if none is given
+        
+        Args:
+            band: the name of the waveband to get the shape of
+        """
         if band is None: band = self.ref_band
-        if not self.has_band(band): MissingGalaxyBand('Band: {} is missing from the galaxy'.format(band))
+        if not self.has_band(band): MissingGalaxyBand('galaxy.get_shape(): {} is missing from the galaxy'.format(band))
 
         return self[band].get_shape()
 
-    def construct_band(self,band,fits_path):
-        """create a new galaxy_band given the band name and fits_path to the input data"""
+    def construct_band(self,band: str,fits_path: str):
+        """Construct a new waveband with name using FITS data contained found from file fits_path
+        
+        Args:
+            band: the name of the waveband
+            fits_path: the file path of the fits image
+        """
         the_data = read_fits(fits_path) 
         self.bands[band] = galaxy_band(band,the_data)
 
         return self.bands[band]
 
     def create_bisection(self,the_params=None, shape=None):
-        """create bisection of the galaxy using (x,y) center and theta" from the_params (or self.gofher_params if none given)"""
+        """create bisection masks (pos_mask,neg_mask) which splits the image in half
+        Uses (x,y) center and theta from the_params
+        
+        Args:
+            the_params: the gofher_parameters used to generate bisections 
+                Important: if none, uses self.gofher_params as the_params
+            shape: the shape of the bisection masks
+                Important: if not given uses shape from galaxy.get_shape()
+        Returns:
+            (pos_mask, neg_mask)
+        """
         if the_params is None: the_params = self.gofher_params
         if shape is None: shape = self.get_shape()
 
         return the_params.create_bisection_mask(shape)
     
     def create_ellipse(self,the_params=None, shape=None, r=1.0):
-        """create ellipse mask of the galaxy using (x,y) center, theta, and (a,b) ellipse extents" from the_params (or self.gofher_params if none given)"""
+        """Create ellipse masks
+        Uses (x,y) center, theta, and (a,b) semi-major and semi-minor axis length from the_params
+        
+        Args:
+            the_params: the gofher_parameters used to generate bisections 
+                Important: if none, uses self.gofher_params as the_params
+            shape: the shape of the ellipse mask to create
+                Important: if not given uses shape from galaxy.get_shape()
+            r: scaling factor of ellipse -> semi-major=a*r semi-minor=b*r
+        Returns:
+            ellipse_mask
+        """
         if the_params is None: the_params = self.gofher_params
         if shape is None: shape = self.get_shape()
 
         return the_params.create_ellipse_mask(shape,r)
     
-    def can_construct_band_pair(self,blue_band_key: str,red_band_key: str):
-        """checks if can construct a band_pair given a BLUER band blue_band and REDDER band red_band"""
+    def can_construct_band_pair(self,blue_band_key: str, red_band_key: str) -> bool:
+        """Checks if can onstruct a waveband pair given a BLUER band blue_band_key and REDDER band red_band_key
+
+        Args:
+            blue_band_key: the waveband name of the BLUER band
+                Important: assure this is the bluer waveband
+            red_band_key: the waveband name of the REDDER band
+                Important: assure this is the redder waveband
+        """
         if not self.has_band(blue_band_key) or not self.has_band(red_band_key): return False #check has data
         if not self[blue_band_key].is_valid() or not self[red_band_key].is_valid(): return False #check has data/pixel mask and right type
         if self[blue_band_key].get_shape() != self[red_band_key].get_shape(): return False #check matching size
         
         return True
     
-    def construct_band_pair(self,blue_band_key: str,red_band_key:str) -> galaxy_band_pair:
-        """creates a new band_pair given a BLUER band blue_band and REDDER band red_band"""
+    def construct_band_pair(self,blue_band_key: str, red_band_key:str) -> galaxy_band_pair:
+        """Constructs a waveband pair given a BLUER band blue_band_key and REDDER band red_band_key
+
+        Args:
+            blue_band_key: the waveband name of the BLUER band
+                Important: assure this is the bluer waveband
+            red_band_key: the waveband name of the REDDER band
+                Important: assure this is the redder waveband
+        Returns:
+            the waveband pair galaxy_band_pair of blue_band_key-red_band_key
+        """
         if not self.can_construct_band_pair(blue_band_key,red_band_key): raise InvalidGalaxyBandPair("Can't construct band pair with blue_band {} and red_band {}".format(blue_band_key,red_band_key))
         the_band_pair_key = construct_galaxy_band_pair_key(blue_band_key,red_band_key)
 

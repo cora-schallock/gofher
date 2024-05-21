@@ -1,4 +1,4 @@
-USE_BACKED_MATPLOT = False
+USE_BACKED_MATPLOT = False #Important: If saving many visualizations at once, set this to True to avoid slow down due to memeory leak
 
 if USE_BACKED_MATPLOT:
     import matplotlib #https://matplotlib.org/stable/users/explain/figure/backends.html
@@ -97,6 +97,8 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
 
     mean = sum_of/n
     std = ((sum_of_squares-(sum_of/n))/n)**0.5
+
+    hist_range_to_plot = [mean-3*std,mean+3*std] #[min,max] value of range of histograms
     
     votes = []
     vote_outcome = "No vote"
@@ -116,7 +118,7 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
         pos_x, pos_pdf, neg_x, neg_pdf = band_pair.evaluate_fit_norm()
         axd[band_pair_key].plot(pos_x,pos_pdf/pos_pdf.sum(),c='green',alpha=0.5 ,linestyle='dashed')
         axd[band_pair_key].plot(neg_x,neg_pdf/neg_pdf.sum(),c='red',alpha=0.5 ,linestyle='dashed')
-        axd[band_pair_key].set_xlim(mean-3*std,mean+3*std)
+        axd[band_pair_key].set_xlim(hist_range_to_plot[0],hist_range_to_plot[1])
         axd[band_pair_key].set_title("{}: {} (ks pval={:.3E})".format(band_pair_key,band_pair.classification_label,band_pair.ks_p_value))
         axd[band_pair_key].legend()
         
@@ -127,7 +129,6 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
 
     if majority_vote != '' and paper_label != '':
         result = score_label(majority_vote,paper_label)
-        print(result)
         if result == 1:
             vote_outcome = 'Agree'
         elif result == -1:
@@ -150,10 +151,10 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     axd['color'].imshow(color_image)
     if paper_label != '':
         axd['color'].set_title("{}\n paper label={}".format(the_gal.name,paper_label))
-        axd['ref_band'].set_title('ref band: {}\nvote:{} {}'.format(the_gal.ref_band,majority_vote,vote_outcome))
+        axd['ref_band'].set_title('ref band: {}\ngofher label = {} ({})'.format(the_gal.ref_band,majority_vote,vote_outcome))
     else:
         axd['color'].set_title(the_gal.name)
-        axd['ref_band'].set_title('ref band: {} vote:{}'.format(the_gal.ref_band,majority_vote))
+        axd['ref_band'].set_title('ref band: {} gofher label = {}'.format(the_gal.ref_band,majority_vote))
 
     if save_path != "":
         fig.savefig(save_path, dpi = 300, bbox_inches='tight')
