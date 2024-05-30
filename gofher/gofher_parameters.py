@@ -9,19 +9,37 @@ class gofher_parameters:
         self.b = 0.0
         self.theta = 0.0
 
-    def load_from_sep_object(self,sep_object):
-        self.x = sep_object['x']
+    def load_from_sep_object(self,sep_object: dict):
+        """
+        Loads the gofher ellipse parameters from a dictionary object.
+
+        Args:
+            sep_object (dict): A dictionary containing the keys 'x', 'y', 'a', 'b', and 'theta'.
+            IMPORTANT: theta position angle is in radians counter clockwise from positive x axis to major axis, and lies in range [-pi/2, pi/2]
+            For more information see: https://sep.readthedocs.io/en/stable/api/sep.ellipse_coeffs.html?highlight=theta
+
+        Returns:
+            None
+        """
         self.y = sep_object['y']
         self.a = sep_object['a']
         self.b = sep_object['b']
         self.theta = sep_object['theta']
 
     def is_valid(self) -> bool:
+        """
+        Check if the object's attributes represent a valid ellipse.
+
+        Returns:
+            bool: True if (x,y,a,b) values are greater than 0.0, False otherwise.
+        """
         return self.x > 0.0 and self.y > 0.0 and self.a > 0.0 and self.b > 0.0
 
     def create_ellipse_mask(self,shape,r=1.0):
         """Generate ellipse mask using the gofher_parameters
         Ellipse has center (x,y), angle theta, and semi-major/semi-major of (a,b) scaled by factor r
+        IMPORTANT: theta position angle is in radians counter clockwise from positive x axis to major axis, and lies in range [-pi/2, pi/2]
+        For more information see: https://sep.readthedocs.io/en/stable/api/sep.ellipse_coeffs.html?highlight=theta
 
         Args:
             shape: The shape of the ellipse mask

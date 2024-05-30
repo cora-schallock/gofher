@@ -1,47 +1,50 @@
-def pos_neg_label_from_theta(theta):
-    """get cardinal labels for bisection
+def get_labels_from_theta(theta: float) -> tuple[str,str]:
+    """Return positive and negative labels for bisection given theta.
     
     Args: 
-        theta: angle of ellipse measured in degrees from positive X-axis of cartessian graph
+        theta: angle of ellipse measured in degrees from positive X-axis of cartesian graph
             going counter-clockwise
+
+    Returns:
+        tuple[str,str]: (positive side cardinal direction label, negative side cardinal direction label)
     """
-    new_theta = theta % 360
-    pos = '-'
-    neg = '-'
-    if new_theta <= 22.5:
-        pos = 'n'
-        neg = 's'
-    elif new_theta > 22.5 and new_theta < 67.5:
-        pos = 'ne'
-        neg = 'sw'
-    elif new_theta >= 67.5 and new_theta <= 112.5:
-        pos = 'e'
-        neg = 'w'
-    elif new_theta > 112.5 and new_theta < 157.5:
-        pos = 'se'
-        neg = 'nw'
-    elif new_theta >= 157.5 and new_theta <= 202.5:
-        pos = 's'
-        neg = 'n'
-    elif new_theta > 202.5 and new_theta < 247.5:
-        pos = 'sw'
-        neg = 'ne'
-    elif new_theta >= 247.5 and new_theta <= 292.5:
-        pos = 'w'
-        neg = 'e'
-    elif new_theta > 292.5 and new_theta < 337.5:
-        pos = 'nw'
-        neg = 'se'
+    theta = theta % 360
+    if theta <= 22.5:
+        return 'n', 's'
+    elif theta <= 67.5:
+        return 'ne', 'sw'
+    elif theta <= 112.5:
+        return 'e', 'w'
+    elif theta <= 157.5:
+        return 'se', 'nw'
+    elif theta <= 202.5:
+        return 's', 'n'
+    elif theta <= 247.5:
+        return 'sw', 'ne'
+    elif theta <= 292.5:
+        return 'w', 'e'
+    elif theta <= 337.5:
+        return 'nw', 'se'
     else:
-        pos = 'n'
-        neg = 's'
-    return pos.upper(),neg.upper()
+        return 'n', 's'
 
-def get_opposite_label(label):
-    """find the opposite cardinal direction label
+def get_opposite_label(cardinal_direction: str) -> str:
+    """Return the opposite cardinal direction of the given cardinal direction.
 
-    Args: 
-        label: the cardinal direction label 
+    Args:
+        cardinal_direction (str): The cardinal direction to find the opposite of.
+
+    Returns:
+        str: The opposite cardinal direction.
     """
-    opposite_dict = {"n":"s","nw":"se","w":"e","sw":"ne","s":"n","se":"nw","e":"w","ne":"sw"}
-    return opposite_dict.get(label.strip().lower(),"")
+    opposite_directions = {
+        "n": "s",
+        "nw": "se",
+        "w": "e",
+        "sw": "ne",
+        "s": "n",
+        "se": "nw",
+        "e": "w",
+        "ne": "sw"
+    }
+    return opposite_directions.get(cardinal_direction.strip().lower(), "")
