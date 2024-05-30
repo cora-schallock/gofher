@@ -46,7 +46,7 @@ def run_default_gofher_parameters_fitting(the_gal):
             the galaxy with gofher_parameters found using default fitting process
     """
 
-    #See: Schallock et. al 2024 - Algorithm 1 Ellipse Mask Fitting
+    #See: Schallock & Hayes 2024 - Algorithm 1 Ellipse Mask Fitting
 
     #Step 1: Setup inital necessary variables:
     inital_gofher_parameters = gofher_parameters()
