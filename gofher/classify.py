@@ -1,4 +1,4 @@
-def get_labels_from_theta(theta: float) -> tuple[str,str]:
+def pos_neg_label_from_theta(theta: float) -> tuple[str,str]:
     """Return positive and negative labels for bisection given theta.
     
     Args: 
