@@ -21,6 +21,7 @@ class gofher_parameters:
         Returns:
             None
         """
+        self.x = sep_object['y']
         self.y = sep_object['y']
         self.a = sep_object['a']
         self.b = sep_object['b']
