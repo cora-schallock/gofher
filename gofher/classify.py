@@ -10,23 +10,23 @@ def pos_neg_label_from_theta(theta: float) -> tuple[str,str]:
     """
     theta = theta % 360
     if theta <= 22.5:
-        return 'n', 's'
+        return 'N', 'S'
     elif theta <= 67.5:
-        return 'ne', 'sw'
+        return 'NE', 'SW'
     elif theta <= 112.5:
-        return 'e', 'w'
+        return 'E', 'W'
     elif theta <= 157.5:
-        return 'se', 'nw'
+        return 'SE', 'NW'
     elif theta <= 202.5:
-        return 's', 'n'
+        return 'S', 'N'
     elif theta <= 247.5:
-        return 'sw', 'ne'
+        return 'SW', 'NE'
     elif theta <= 292.5:
-        return 'w', 'e'
+        return 'W', 'E'
     elif theta <= 337.5:
-        return 'nw', 'se'
+        return 'NW', 'SE'
     else:
-        return 'n', 's'
+        return 'N', 'S'
 
 def get_opposite_label(cardinal_direction: str) -> str:
     """Return the opposite cardinal direction of the given cardinal direction.

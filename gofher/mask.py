@@ -18,6 +18,8 @@ def create_ellipse_mask(x,y,a,b,theta,r=1.0,shape=None,arr=None):
         x: x-cordinate of center (h)
         y: y-cordinate of center (k)
         theta: angle of semi-major axis
+            IMPORTANT: theta position angle is in radians counter clockwise from positive x axis to major axis, and lies in range [-pi/2, pi/2]
+            For more information see: https://sep.readthedocs.io/en/stable/api/sep.ellipse_coeffs.html?highlight=theta
         a: semi-major axis length
         b: semi-minor axis length
         r: scaling factor of ellipse
