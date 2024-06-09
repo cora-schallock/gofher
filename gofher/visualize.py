@@ -162,3 +162,103 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
         plt.close(fig)
     else:
         plt.show()
+
+def visualize_difference_images(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path=''):
+    """Visualize the classification process gofher uses for determining label
+
+    Displays ellipse mask, bisection mask on refernce image and histograms
+    for all included waveband pairs.
+    
+    If paper_label is provided, includes if it agrees/disagrees.
+    
+    Note: Only considers waveband pairs composed of bands in bands_in_order
+    
+
+    Args:
+        color_image: the color refercne image that is displayed as thumbnail
+        bands_in_order: wavebands to use in order of bluest to reddest
+        save_path: if given path saves visualize image, if not displays it
+    """
+    mo_labels = [['color','ref_band']]
+    mo_labels.extend(get_subplot_mosaic_strtings(bands_in_order))
+    height_ratios = [2] + [1] * int(len(mo_labels)-1) #only works if band_pair numbers is even
+    gs_kw = dict(width_ratios=[1,1], height_ratios=height_ratios)
+    fig, axd = plt.subplot_mosaic(mo_labels,
+                                  gridspec_kw=gs_kw, figsize = (24,35),
+                                  constrained_layout=True,num=1, clear=True) #num=1, clear=True #https://stackoverflow.com/a/65910539/13544635
+    fig.patch.set_facecolor('white')
+
+    sum_of = 0.0
+    sum_of_squares = 0.0
+    n = 0
+
+    for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
+        band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
+        band_pair = the_gal.get_band_pair(band_pair_key)
+        elements = band_pair.diff_image[the_gal.area_to_diff]
+
+        sum_of += np.sum(elements)
+        sum_of_squares += np.sum(elements**2)
+        n += len(elements)
+
+    mean = sum_of/n
+    std = ((sum_of_squares-(sum_of/n))/n)**0.5
+
+    hist_range_to_plot = [mean-3*std,mean+3*std] #[min,max] value of range of histograms
+    
+    votes = []
+    vote_outcome = "No vote"
+    majority_vote = ''
+    for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
+        band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
+        pl = ''
+        band_pair = the_gal.get_band_pair(band_pair_key)
+        votes.append(band_pair.classification_label)
+
+        to_plot = band_pair.diff_image
+        to_plot[np.logical_not(the_gal.create_ellipse())] = -np.Inf
+
+        axd[band_pair_key].imshow(to_plot,origin='lower')
+        axd[band_pair_key].set_title("{}: {} (ks pval={:.3E})".format(band_pair_key,band_pair.classification_label,band_pair.ks_p_value))
+        #axd[band_pair_key].legend()
+        
+    if len(set(votes)) == 1:
+        majority_vote = votes[0]
+    elif votes.count(list(set(votes))[0]) != votes.count(list(set(votes))[1]):
+        majority_vote = max(set(votes), key=votes.count)
+
+    if majority_vote != '' and paper_label != '':
+        result = score_label(majority_vote,paper_label)
+        if result == 1:
+            vote_outcome = 'Agree'
+        elif result == -1:
+            vote_outcome = 'Disagree'
+
+    if mo_labels[-1][-1] == '':
+        axd[''].axis('off')
+
+    data = the_gal[the_gal.ref_band].data
+    el_mask = the_gal.create_ellipse()
+    pos_mask, neg_mask = the_gal.create_bisection()
+    the_mask = the_gal[the_gal.ref_band].valid_pixel_mask
+    cmap = create_color_map_class(pos_mask,neg_mask,np.logical_and(el_mask,the_mask))
+
+    m, s = np.mean(data[the_mask]), np.std(data[the_mask])
+    axd['ref_band'].imshow(data, interpolation='nearest', cmap='gray', vmin=m-3*s, vmax=m+3*s, origin='lower') #, cmap='gray'
+    axd['ref_band'].imshow(cmap, origin= 'lower',alpha=0.4)
+    
+
+    axd['color'].imshow(color_image)
+    if paper_label != '':
+        axd['color'].set_title("{}\n paper label={}".format(the_gal.name,paper_label))
+        axd['ref_band'].set_title('ref band: {}\ngofher label = {} ({})'.format(the_gal.ref_band,majority_vote,vote_outcome))
+    else:
+        axd['color'].set_title(the_gal.name)
+        axd['ref_band'].set_title('ref band: {} gofher label = {}'.format(the_gal.ref_band,majority_vote))
+
+    if save_path != "":
+        fig.savefig(save_path, dpi = 300, bbox_inches='tight')
+        fig.clear()
+        plt.close(fig)
+    else:
+        plt.show()

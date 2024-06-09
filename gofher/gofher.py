@@ -61,7 +61,8 @@ def run_default_gofher_parameters_fitting(the_gal: galaxy) -> galaxy:
     (cm_x, cm_y) = (shape[1]*0.5, shape[0]*0.5)
     the_el_sep, mu_bkg = run_sep(data, cm_x, cm_y)
     inital_gofher_parameters.load_from_sep_object(the_el_sep)
-
+    
+    
     #Step 3: Create an ellipse mask using the inital_gofher_parameters
     #el_mask = create_ellipse_mask_from_gofher_params(inital_gofher_parameters,shape,r=1.0)
     el_mask = inital_gofher_parameters.create_ellipse_mask(shape,r=1.0)
