@@ -2,6 +2,7 @@ import numpy as np
 
 from matrix import normalize_matrix
 from mask import create_valid_pixel_mask
+from fits import bin_fits
 
 
 class MissingGalaxyBand(Exception):
@@ -51,3 +52,19 @@ class galaxy_band:
             raise ValueError("Can't normalize galaxy_band: {} - (make sure it has data and valid_pixel_mask)".format(self.band))
         to_diff_mask = np.logical_and(area_to_norm,self.valid_pixel_mask)
         self.norm_data = normalize_matrix(self.data,to_diff_mask)
+
+    def bin_data(self, s:int):
+        """bin data into s x s pixels
+        
+        Args:
+            s: bin size in x and y directions
+        """
+        if not self.is_valid():
+            raise ValueError("Can't bin galaxy_band: {} - (make sure it has data and valid_pixel_mask)".format(self.band))
+        if s <= 0:
+            raise ValueError("band {} bin_data: bin_size {} must be positive integer".format(self.band,s))
+        if self.get_shape()[0] % s != 0 or self.get_shape()[1] % s != 0:
+            raise ValueError("band {} bin_data: fits data of shape {} not divisible by bin_size {}".format(self.band,self.get_shape(),s))
+        
+        self.data = bin_fits(self.data,s).byteswap().newbyteorder() #Note: .byteswap().newbyteorder() is for sep error - ValueError: Input array with dtype '>f8' has non-native byte order. Only native byte order arrays are supported.
+        self.construct_valid_pixel_mask()

@@ -50,5 +50,19 @@ class gofher_parameters:
         if not isinstance(shape, tuple) or not len(shape) == 2 or not isinstance(shape[0],int) or not isinstance(shape[1],int) or min(shape) <= 0:
             raise ValueError("shape ({}) must be a tuple of 2 positive integers to create an ellipse mask ".format(shape)) 
         return create_bisection_mask(self.x,self.y,self.theta,shape)
+    
+    def set_bin_size_after_fitting(self,s: int):
+        """Set the bin size of the bisection masks
+
+        IMPORTANT: THIS IS ONLY DONE IF BINNING IS DONE AFTER GOFHER PARAMETERS ARE FITTED
+        Args:
+            s: the bin size
+        """
+        if not isinstance(s, int) or s < 0:
+            raise ValueError("s ({}) must be a positive integer".format(s))
+        self.a /= s
+        self.b /= s
+        self.x /= s
+        self.y /= s
 
     

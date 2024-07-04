@@ -2,7 +2,7 @@ import copy
 import itertools
 import numpy as np
 
-from fits import read_fits
+from fits import read_fits, bin_fits
 from spin_parity import score_label
 from ebm import EmpiricalBrownsMethod
 from classify import pos_neg_label_from_theta
@@ -73,10 +73,21 @@ class galaxy:
             band: the name of the waveband
             fits_path: the file path of the fits image
         """
-        the_data = read_fits(fits_path) 
+        the_data = read_fits(fits_path)
         self.bands[band] = galaxy_band(band,the_data)
 
         return self.bands[band]
+    
+    def bin_all_bands(self, s: int):
+        """bin all fits data in self.bands
+
+        Args:
+            s: bin size in x and y directions
+        Note:
+            If this is not called the fits data will not be binned (i.e. will use original image)
+        """
+        for band in self.bands:
+            self[band].bin_data(s)
 
     def create_bisection(self,the_params=None, shape=None):
         """create bisection masks (pos_mask,neg_mask) which splits the image in half
