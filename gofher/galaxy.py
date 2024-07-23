@@ -197,7 +197,6 @@ class galaxy:
             the_band_pair = self.construct_band_pair(blue_band,red_band)
 
             the_band_pair.run(pos_mask,neg_mask,self.area_to_diff)
-            the_band_pair.fit_norm()
             the_band_pair.classify(self.gofher_params.theta)
 
         #6) calcuylate cumulative score
@@ -212,8 +211,8 @@ class galaxy:
             bands_in_order: wavebands to use in order of bluest to reddest
                 Note: Will only consider waveband pairs that have both the
                 blue and red band containted in bands_in_order.
-        Returns:
-            (label,pval): label determined by ebm and ebm pval
+        Returns:True
+            (label,pval_winning,p_val_losing): label determined by ebm and ebm pval
         """
         
         pos_pixels = []
@@ -245,9 +244,9 @@ class galaxy:
             neg_ebm = EmpiricalBrownsMethod(np.array(neg_pixels),neg_pvals)
 
         if neg_ebm < pos_ebm:
-            return (self.pos_side_label, neg_ebm)
+            return (self.pos_side_label, neg_ebm, pos_ebm)
         else:
-            return (self.neg_side_label, pos_ebm)
+            return (self.neg_side_label, pos_ebm, neg_ebm)
 
     
     def __getitem__(self, band):
@@ -312,15 +311,25 @@ class galaxy:
         header = ["name"]
         row = [self.name]
 
-        (ebm_label, ebm_p) = self.run_ebm(bands_in_order)
+        (ebm_label, ebm_pval_winning, ebm_pval_losing) = self.run_ebm(bands_in_order)
 
         if paper_label != '':
-             header.extend(["paper_label","ebm_label","ebm_pval","score"])
-             row.extend([paper_label,ebm_label,"{:.3E}".format(ebm_p),str(score_label(ebm_label,paper_label))])
+             header.extend(["paper_label","ebm_label","ebm_pval_winning","ebm_pval_losing","score"])
+             row.extend([paper_label,ebm_label,"{:.2E}".format(ebm_pval_winning),"{:.2E}".format(ebm_pval_losing),str(score_label(ebm_label,paper_label))])
         else:
-            header.extend(["ebm_label","ebm_pval"])
-            row.extend([ebm_label,"{:.3E}".format(ebm_p)])
+            header.extend(["ebm_label","ebm_pval_winning","ebm_pval_losing"])
+            row.extend([ebm_label,"{:.2E}".format(ebm_pval_winning),"{:.2E}".format(ebm_pval_losing)])
 
-        return (header,row)   
+        return (header,row) 
+    
+    def get_params_csv_header_and_row(self):
+        """Generate galaxy's params csv information
+
+        Returns:
+            (header,row): galaxy's params csv header and row
+        """
+        header = ["name","x","y","a","b","theta"]
+        row = [self.name,self.gofher_params.x,self.gofher_params.y,self.gofher_params.a,self.gofher_params.b,self.gofher_params.theta]
+        return (header,row)
         
 

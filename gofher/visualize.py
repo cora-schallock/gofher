@@ -13,8 +13,10 @@ from galaxy import galaxy
 from galaxy_band_pair import construct_galaxy_band_pair_key
 from spin_parity import score_label
 
-DEFAULT_POSITIVE_RGB_VECTOR = [60/255,179/255,113/255] #mediumseagreen
-DEFAULT_NEGATIVE_RGB_VECTOR = [240/255,128/255,125/255] #lightcoral
+#DEFAULT_POSITIVE_RGB_VECTOR = [60/255,179/255,113/255] #mediumseagreen
+DEFAULT_POSITIVE_RGB_VECTOR = [190/255,67/255,159/255] #BE439F
+#DEFAULT_NEGATIVE_RGB_VECTOR = [240/255,128/255,125/255] #lightcoral
+DEFAULT_NEGATIVE_RGB_VECTOR = [222/255,158/255,54/255] #DE9E36
 DEFAULT_BAD_PIXEL_RGB_VECTOR = [169/255,169/255,169/255] #lightgrey
 
 def create_color_map_class(pos,neg,el):
@@ -105,21 +107,21 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     majority_vote = ''
     for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
         band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
-        pl = ''
         band_pair = the_gal.get_band_pair(band_pair_key)
         votes.append(band_pair.classification_label)
 
-        axd[band_pair_key].hist(band_pair.pos_side,bins=30,color='green',alpha=0.5, weights=np.ones_like(band_pair.pos_side) / len(band_pair.pos_side))
-        axd[band_pair_key].axvline(band_pair.pos_fit_norm_mean,color='green',label="{} mean = {:.5f}".format(the_gal.pos_side_label,band_pair.pos_fit_norm_mean))
+        axd[band_pair_key].hist(band_pair.pos_side,bins=30,color='#BE439F',alpha=0.5, weights=np.ones_like(band_pair.pos_side) / len(band_pair.pos_side))
+        axd[band_pair_key].axvline(band_pair.pos_mean,color='#BE439F',label="{} mean = {:.5f}".format(the_gal.pos_side_label,band_pair.pos_mean))
 
-        axd[band_pair_key].hist(band_pair.neg_side,bins=30,color='red',alpha=0.5, weights=np.ones_like(band_pair.neg_side) / len(band_pair.neg_side))
-        axd[band_pair_key].axvline(band_pair.neg_fit_norm_mean,color='red',label="{} mean = {:.5f}".format(the_gal.neg_side_label,band_pair.neg_fit_norm_mean))
+        axd[band_pair_key].hist(band_pair.neg_side,bins=30,color='#DE9E36',alpha=0.5, weights=np.ones_like(band_pair.neg_side) / len(band_pair.neg_side))
+        axd[band_pair_key].axvline(band_pair.neg_mean,color='#B47613',label="{} mean = {:.5f}".format(the_gal.neg_side_label,band_pair.neg_mean))
         
-        pos_x, pos_pdf, neg_x, neg_pdf = band_pair.evaluate_fit_norm()
-        axd[band_pair_key].plot(pos_x,pos_pdf/pos_pdf.sum(),c='green',alpha=0.5 ,linestyle='dashed')
-        axd[band_pair_key].plot(neg_x,neg_pdf/neg_pdf.sum(),c='red',alpha=0.5 ,linestyle='dashed')
-        axd[band_pair_key].set_xlim(hist_range_to_plot[0],hist_range_to_plot[1])
-        axd[band_pair_key].set_title("{}: {} (ks pval={:.3E})".format(band_pair_key,band_pair.classification_label,band_pair.ks_p_value))
+        if band_pair._used_normed:
+            pos_x, pos_pdf, neg_x, neg_pdf = band_pair.evaluate_fit_norm()
+            axd[band_pair_key].plot(pos_x,pos_pdf/pos_pdf.sum(),c='#BE439F',alpha=0.5 ,linestyle='dashed')
+            axd[band_pair_key].plot(neg_x,neg_pdf/neg_pdf.sum(),c='#DE9E36',alpha=0.5 ,linestyle='dashed')
+            axd[band_pair_key].set_xlim(hist_range_to_plot[0],hist_range_to_plot[1])
+        axd[band_pair_key].set_title("{}: {} (ks pval={:.2E})".format(band_pair_key,band_pair.classification_label,band_pair.ks_p_value))
         axd[band_pair_key].legend()
         
     if len(set(votes)) == 1:
