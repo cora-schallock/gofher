@@ -95,6 +95,10 @@ class galaxy_band_pair:
         if not self._has_normed: raise ValueError("galaxy_band_pair.classify(): need to run method galaxy_band_pair.fit_norm() prior to fitting norm")
 
         pl, nl = pos_neg_label_from_theta(np.degrees(theta))
+        #mean_dif = np.sign(self.pos_fit_norm_mean-self.neg_fit_norm_mean)
+        self.pos_fit_norm_mean = np.mean(self.pos_side)
+        self.neg_fit_norm_mean = np.mean(self.neg_side)
+        #mean_dif = pos_mean - neg_mean
         mean_dif = np.sign(self.pos_fit_norm_mean-self.neg_fit_norm_mean)
 
         self.classification = np.sign(mean_dif)
