@@ -8,6 +8,7 @@ class gofher_parameters:
         self.a = 0.0
         self.b = 0.0
         self.theta = 0.0
+        self.theta_offset = 0.0
 
     def load_from_sep_object(self,sep_object):
         self.x = sep_object['x']
@@ -49,7 +50,7 @@ class gofher_parameters:
             raise ValueError("Gofher Parameters (x={},y={},a={},b={}) must be positive values to create a bisection mask".format(self.x,self.y,self.a,self.b))
         if not isinstance(shape, tuple) or not len(shape) == 2 or not isinstance(shape[0],int) or not isinstance(shape[1],int) or min(shape) <= 0:
             raise ValueError("shape ({}) must be a tuple of 2 positive integers to create an ellipse mask ".format(shape)) 
-        return create_bisection_mask(self.x,self.y,self.theta,shape)
+        return create_bisection_mask(self.x,self.y,self.theta+self.theta_offset,shape)
     
     def set_bin_size_after_fitting(self,s: int):
         """Set the bin size of the bisection masks

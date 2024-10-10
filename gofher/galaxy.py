@@ -104,31 +104,7 @@ class galaxy:
         if the_params is None: the_params = self.gofher_params
         if shape is None: shape = self.get_shape()
 
-        #TODO: clean this up - for Masanori test
-        #TODO: check if norm over all image
-        #return the_params.create_bisection_mask(shape) #original
-        from matrix import create_minor_axis_angle_matrix, create_major_axis_angle_matrix
-        from matrix import create_disk_angle_matrix
-        import matplotlib.pyplot as plt
-        
-        p = self.gofher_params
-        minor_ang = create_disk_angle_matrix(p.x,p.y,p.theta,self.get_shape())
-        major_ang = create_disk_angle_matrix(p.x,p.y,p.theta+np.pi/2,self.get_shape())
-        
-        pos_minor_mask = (minor_ang<np.pi)
-        neg_minor_mask = (minor_ang>=np.pi)
-        pos_major_mask = (major_ang<np.pi)
-        neg_major_mask = (major_ang>=np.pi)
-
-        #1 vs. 2:
-        pos_mask = np.logical_and(pos_minor_mask,pos_major_mask) 
-        neg_mask = np.logical_and(pos_minor_mask,neg_major_mask)
-        
-        #3 vs. 4:
-        #pos_mask = np.logical_and(neg_minor_mask,pos_major_mask) 
-        #neg_mask = np.logical_and(neg_minor_mask,neg_major_mask)
-        
-        return pos_mask, neg_mask
+        return the_params.create_bisection_mask(shape)
 
     
     def create_ellipse(self,the_params=None, shape=None, r=1.0):
@@ -200,7 +176,7 @@ class galaxy:
         
         #2) Figure out cardinal direction labels for pos and neg
         #   side of bisection based on theta
-        self.pos_side_label, self.neg_side_label = pos_neg_label_from_theta(np.degrees(self.gofher_params.theta))
+        self.pos_side_label, self.neg_side_label = pos_neg_label_from_theta(np.degrees(self.gofher_params.theta+self.gofher_params.theta_offset))
 
         #3) find area to norm (by looking at all valid pixel masks)
         #   and then normalize each galaxy_band
@@ -222,7 +198,7 @@ class galaxy:
             the_band_pair = self.construct_band_pair(blue_band,red_band)
 
             the_band_pair.run(pos_mask,neg_mask,self.area_to_diff)
-            the_band_pair.classify(self.gofher_params.theta)
+            the_band_pair.classify(self.gofher_params.theta+self.gofher_params.theta_offset)
 
         #6) calcuylate cumulative score
         self.cumulative_score = int(np.sign(self.cumulative_classification_vote_count))

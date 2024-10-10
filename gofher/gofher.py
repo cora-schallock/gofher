@@ -92,7 +92,7 @@ def run_default_gofher_parameters_fitting(the_gal):
 
     return the_gal
 
-def run_gofher(name,fits_path_function,blue_to_red_bands_in_order,ref_bands_in_order,paper_label=None, s: int=None, bin_prior_to_param_fitting=False):
+def run_gofher(name,fits_path_function,blue_to_red_bands_in_order,ref_bands_in_order,paper_label=None, s: int=None, bin_prior_to_param_fitting=False,sweep_offset_deg_angle=0.0):
     """Runs gofher of a single galaxy
 
         Args:
@@ -135,6 +135,7 @@ def run_gofher(name,fits_path_function,blue_to_red_bands_in_order,ref_bands_in_o
 
     #Use default gofher_parameter fitting:
     the_gal = run_default_gofher_parameters_fitting(the_gal)
+    the_gal.gofher_params.theta_offset = np.radians(sweep_offset_deg_angle)
 
     #if !bin_prior_to_param_fitting, performing pixel binning AFTER gofher parameter fitting and MUST CALL the_gal.gofher_params.set_bin_size_after_fitting(s):
     if s is not None and not bin_prior_to_param_fitting: 
