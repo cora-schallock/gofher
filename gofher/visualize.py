@@ -1,4 +1,4 @@
-USE_BACKED_MATPLOT = False #Important: If saving many visualizations at once, set this to True to avoid slow down due to memeory leak
+USE_BACKED_MATPLOT = True #Important: If saving many visualizations at once, set this to True to avoid slow down due to memeory leak
 
 if USE_BACKED_MATPLOT:
     import matplotlib #https://matplotlib.org/stable/users/explain/figure/backends.html

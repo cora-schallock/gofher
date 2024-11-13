@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import stats
-from scipy.stats import ks_2samp
+from scipy.stats import ks_2samp, ttest_ind
 
 from galaxy_band import galaxy_band
 from matrix import normalize_matrix
@@ -108,9 +108,17 @@ class galaxy_band_pair:
         self.classification = np.sign(self.mean_diff)
         self.classification_label = nl if -np.sign(self.mean_diff) == -1.0 else pl
 
+        """
+        #original ks test:
         ks_score = ks_2samp(self.pos_side,self.neg_side)
         self.ks_d_stat = ks_score.statistic
         self.ks_p_value = ks_score.pvalue
+        """
+
+        #welches t-0test unequal variance:
+        welches_score = ttest_ind(self.pos_side,self.neg_side,equal_var=False)
+        self.ks_d_stat = welches_score.statistic
+        self.ks_p_value = welches_score.pvalue
 
         self._used_normed = use_norm
 
