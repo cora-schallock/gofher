@@ -3,10 +3,13 @@ import pandas as pd
 import numpy as np
 from scipy.stats.mstats import gmean
 
-folders = ["figure8","figure10","figure11"]
-title = "Welch geomean - Obvserved p-value sweep"
-#folders = ["figure9"]
+#folders = ["figure8","figure10","figure11"]
+#title = "Observed Galaxies: Geomean Welch p-value vs offset angle"
+#title = "Observed Galaxies: Normed Welch p-value vs offset angle"
+folders = ["figure9"]
 #title = "Welch geomean - Inferred p-value sweep"
+#title = "Inferred Galaxies: Geomean Welch p-value vs offset angle"
+title = "Inferred Galaxies: Normed Welch p-value vs offset angle"
 
 def get_csv_path(ang: float, folder: str) -> str:
     return "C:\\Users\\school\\Desktop\\welch_p_val_sweep_angle_test\\{}\\{}_ebm.csv".format(int(ang),folder)
@@ -33,7 +36,8 @@ def generate_p_val_sweep_graphs():
                 all_data[name][ang] = current_dict[name]
     to_plot(all_data)
 
-"""def to_plot(data: dict):
+
+def to_plot(data: dict):
     average = np.zeros(36)
     for name in data:
         the_list = np.array(list(data[name].values()))
@@ -48,11 +52,13 @@ def generate_p_val_sweep_graphs():
         plt.plot(list(data[name].keys()), the_value, color = 'blue', alpha = 0.2)
     plt.plot(list(data[name].keys()), average/len(data), color = 'red')
     plt.title(title)
-    plt.xlabel("Theta")
-    plt.ylabel("normed -log(p-value)")
-    plt.show()"""
+    plt.xlabel("theta")
+    plt.ylabel("|-log(p-value)|")
+    #plt.show()
+    output_path = "C:\\Users\\school\\Desktop\\welch_p_val_sweep_angle_test\\normed_inf.png"
+    plt.savefig(output_path, dpi = 300, bbox_inches='tight')
 
-
+"""
 def to_plot(data: dict):
     plotting = np.zeros((len(data), 36))
     keys = sorted(data[list(data.keys())[0]].keys())
@@ -76,11 +82,28 @@ def to_plot(data: dict):
 
     plt.plot(keys, y_vals)
     plt.title(full_title)
-    plt.xlabel("Theta")
-    plt.ylabel("log geo mean p-value")
-    plt.show()
-
+    plt.xlabel("theta")
+    plt.ylabel("log p-value")
+    #plt.show()
+    output_path = "C:\\Users\\school\\Desktop\\welch_p_val_sweep_angle_test\\inf.png"
+    plt.savefig(output_path, dpi = 300, bbox_inches='tight')
+"""
 
     
 if __name__ == "__main__":
+    #for formatting mnras paper: source: https://walmsley.dev/posts/typesetting-mnras-figures
+
+    SMALL_SIZE = 9
+    MEDIUM_SIZE = 9
+    BIGGER_SIZE = 9
+
+    plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+    plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+    plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+    plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+    plt.rc('figure', titlesize=BIGGER_SIZE)
+    plt.rc('font', family='Nimbus Roman No9 L') #uncomment this to use same font as MNRAS - requires font Nimbus Roman No9 L (can be downloaded from https://www.fontsquirrel.com/fonts/nimbus-roman-no9-l)
+
     generate_p_val_sweep_graphs()
