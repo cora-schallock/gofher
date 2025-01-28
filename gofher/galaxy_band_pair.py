@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import stats
-from scipy.stats import ks_2samp
+from scipy.stats import mannwhitneyu
 
 from galaxy_band import galaxy_band
 from matrix import normalize_matrix
@@ -55,8 +55,8 @@ class galaxy_band_pair:
         self.pos_fit_norm_std = None
         self.neg_fit_norm_std = None
 
-        self.ks_d_stat = 0.0
-        self.ks_p_value = 0.0
+        self.mannwhitneyu_stat = 0.0
+        self.mannwhitneyu_p_value = 0.0
 
         self.classification = 0
         self.classification_label = ""
@@ -108,9 +108,9 @@ class galaxy_band_pair:
         self.classification = np.sign(self.mean_diff)
         self.classification_label = nl if -np.sign(self.mean_diff) == -1.0 else pl
 
-        ks_score = ks_2samp(self.pos_side,self.neg_side)
-        self.ks_d_stat = ks_score.statistic
-        self.ks_p_value = ks_score.pvalue
+        mwu = mannwhitneyu(self.pos_side,self.neg_side)
+        self.mannwhitneyu_stat = mwu.statistic
+        self.mannwhitneyu_p_value = mwu.pvalue
 
         self._used_normed = use_norm
 
@@ -129,7 +129,7 @@ class galaxy_band_pair:
     
     def get_verbose_csv_header_and_row(self,paper_label=''):
         """Get csv information in the following order:
-        pos_side_mean, pos_side_std, neg_side_mean, neg_side_std, ks_d_stat, ks_p_val, classification_label, score?
+        pos_side_mean, pos_side_std, neg_side_mean, neg_side_std, mannwhitneyu_stat,self.mannwhitneyu_p_value, classification_label, score?
         
         Args: 
             paper_label: baseline label for comparison, if no baseline leave blank.
@@ -145,7 +145,7 @@ class galaxy_band_pair:
             header = ["pos_mean","neg_mean","mean_diff"]
             row = [self.pos_mean, self.neg_mean, self.mean_diff]
         if paper_label != '':
-            header.extend(["ks_stat","ks_pval","label","score"])
-            row.extend([self.ks_d_stat,self.ks_p_value,self.classification_label,score_label(self.classification_label,paper_label)])
+            header.extend(["mannwhitneyu_stat","mannwhitneyu_pval","label","score"])
+            row.extend([self.mannwhitneyu_stat,self.mannwhitneyu_p_value,self.classification_label,score_label(self.classification_label,paper_label)])
 
         return (header,row)

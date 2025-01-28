@@ -59,7 +59,7 @@ def get_subplot_mosaic_strtings(bands_in_order):
     if len(band_keys)%2 != 0: band_keys.append('')
     return np.array(band_keys).reshape(int(len(band_keys)/2),2).tolist()
 
-def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path=''):
+def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path='',color_flip=False):
     """Visualize the classification process gofher uses for determining label
 
     Displays ellipse mask, bisection mask on refernce image and histograms
@@ -121,7 +121,7 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
             axd[band_pair_key].plot(pos_x,pos_pdf/pos_pdf.sum(),c='#BE439F',alpha=0.5 ,linestyle='dashed')
             axd[band_pair_key].plot(neg_x,neg_pdf/neg_pdf.sum(),c='#DE9E36',alpha=0.5 ,linestyle='dashed')
             axd[band_pair_key].set_xlim(hist_range_to_plot[0],hist_range_to_plot[1])
-        axd[band_pair_key].set_title("{}: {} (ks pval={:.2E})".format(band_pair_key,band_pair.classification_label,band_pair.ks_p_value))
+        axd[band_pair_key].set_title("{}: {} (pval={:.2E})".format(band_pair_key,band_pair.classification_label,band_pair.mannwhitneyu_p_value))
         axd[band_pair_key].legend()
         
     if len(set(votes)) == 1:
@@ -149,8 +149,10 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     axd['ref_band'].imshow(data, interpolation='nearest', cmap='gray', vmin=m-3*s, vmax=m+3*s, origin='lower') #, cmap='gray'
     axd['ref_band'].imshow(cmap, origin= 'lower',alpha=0.4)
     
-
-    axd['color'].imshow(color_image)
+    if color_flip:
+        axd['color'].imshow(color_image, origin='lower')
+    else:
+        axd['color'].imshow(color_image)
     if paper_label != '':
         axd['color'].set_title("{}\n paper label={}".format(the_gal.name,paper_label))
         axd['ref_band'].set_title('ref band: {}\ngofher label = {} ({})'.format(the_gal.ref_band,majority_vote,vote_outcome))

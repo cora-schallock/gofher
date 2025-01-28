@@ -41,8 +41,7 @@ class galaxy_band:
         self.valid_pixel_mask = create_valid_pixel_mask(self.data)
 
     def normalize(self,area_to_norm: np.ndarray):
-        """Normalize all pixels in area_to_norm so that values are in range [0,1], 0 if not in area_to_norm:
-        pos_side_mean, pos_side_std, neg_side_mean, neg_side_std, ks_d_stat, ks_p_val, classification_label, score?
+        """Normalize all pixels in area_to_norm so that values are in range [0,1], 0 if not in area_to_norm
         
         Args: 
             area_to_norm: area mask to normalize values over
@@ -63,8 +62,6 @@ class galaxy_band:
             raise ValueError("Can't bin galaxy_band: {} - (make sure it has data and valid_pixel_mask)".format(self.band))
         if s <= 0:
             raise ValueError("band {} bin_data: bin_size {} must be positive integer".format(self.band,s))
-        if self.get_shape()[0] % s != 0 or self.get_shape()[1] % s != 0:
-            raise ValueError("band {} bin_data: fits data of shape {} not divisible by bin_size {}".format(self.band,self.get_shape(),s))
         
         self.data = bin_fits(self.data,s).byteswap().newbyteorder() #Note: .byteswap().newbyteorder() is for sep error - ValueError: Input array with dtype '>f8' has non-native byte order. Only native byte order arrays are supported.
         self.construct_valid_pixel_mask()

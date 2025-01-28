@@ -205,7 +205,7 @@ class galaxy:
     def run_ebm(self, bands_in_order = []):
         """Calculate the most statistically signifcant red band
 
-        Uses Emperical Brown's Method to combine ks test pvalues from waveband pairs
+        Uses Emperical Brown's Method to combine mannwhitneyu test pvalues from waveband pairs
 
         Args:
             bands_in_order: wavebands to use in order of bluest to reddest
@@ -225,10 +225,10 @@ class galaxy:
 
             if int(band_pair.classification) == 1: #switched
                 pos_pixels.append(band_pair.diff_image[self.area_to_diff])
-                pos_pvals.append(band_pair.ks_p_value)
+                pos_pvals.append(band_pair.mannwhitneyu_p_value)
             elif int(band_pair.classification) == -1:
                 neg_pixels.append(band_pair.diff_image[self.area_to_diff])
-                neg_pvals.append(band_pair.ks_p_value)
+                neg_pvals.append(band_pair.mannwhitneyu_p_value)
 
         pos_ebm = 1.0
         neg_ebm = 1.0
@@ -280,6 +280,7 @@ class galaxy:
         row.extend([self.pos_side_label,self.neg_side_label])
 
         score = 0
+        band_pair_labels = []
 
         for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
             band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
@@ -290,10 +291,27 @@ class galaxy:
             row.extend(bandpair_row)
             if paper_label != '':
                 score += bandpair_row[-1]
+
+            band_pair_labels.append(band_pair.classification_label)
         
         if paper_label != '':
             header.extend(['total','score'])
             row.extend([score,int(np.sign(score))])
+
+        #find most common label:
+        gofher_label = '-'
+        if len(set(band_pair_labels)) == 1:
+            gofher_label = band_pair_labels[0]  
+        elif len(set(band_pair_labels)) > 1:
+            the_max = lambda x: max(x, key=x.count)
+            the_min = lambda x: min(x, key=x.count)
+
+            if the_max(band_pair_labels) != the_min(band_pair_labels):
+                gofher_label = the_max(band_pair_labels)    
+
+        header.append("GOFHER_label")
+        row.append(gofher_label)
+
         return (header,row)
     
     def get_ebm_csv_header_and_row(self,bands_in_order=[],paper_label=''):

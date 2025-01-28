@@ -50,38 +50,44 @@ def is_valid_fits_path_valid(fits_path: str):
     return os.path.splitext(fits_path)[-1].lower() == ".fits" #https://stackoverflow.com/a/5900590/13544635
 
 def bin_fits(data: np.ndarray, s: int) -> np.ndarray:
-    """Bin fits data
+    """Bin fits data with padding if necessary
     
     Args: 
         data: numpy 2d array containing data to bin
         s: bin size in x and y directions
 
     Notes:
-        source: https://stackoverflow.com/a/36102436/13544635
-        If a has the shape m, n, the reshape should have the form
-        a.reshape(m_bins, m // m_bins, n_bins, n // n_bins)
-
-        So:
-        If a has the shape m, n, and the bin size is (s x s) the reshape should have the form
-        a.reshape(m // s, s, n//s, s)
-
-
+        If the dimensions of the data array are not divisible by s, the array is padded with zeros.
+    
     Returns:
         binned numpy 2d array
     """
-    to_bin = np.zeros(data.shape)
-    valid_pixel_mask = create_valid_pixel_mask(data)
+    # Calculate padding needed
+    pad_x = (s - data.shape[0] % s) % s
+    pad_y = (s - data.shape[1] % s) % s
 
-    to_bin[valid_pixel_mask] = data[valid_pixel_mask]
-    binned = to_bin.reshape(data.shape[0]//s, s, data.shape[1]//s,s).sum(3).sum(1)
-    valid_count = valid_pixel_mask.astype(int).reshape(data.shape[0]//s, s, data.shape[1]//s,s).sum(3).sum(1)
+    # Pad the data with zeros if necessary
+    padded_data = np.pad(data, ((0, pad_x), (0, pad_y)), mode='constant', constant_values=0)
 
-    #if all binned pixels in a region are invalid, set them to NaN
-    to_mask_out = valid_count == 0
-    valid_count[to_mask_out] = 1
+    # Create a valid pixel mask (ignoring the padded zeros, and any infs or nans from original data)
+    valid_pixel_mask = np.logical_and(padded_data != 0,create_valid_pixel_mask(padded_data)).astype(int)
 
-    binned_fits = binned/valid_count
+    # Perform the binning process
+    binned = padded_data.reshape(padded_data.shape[0] // s, s, padded_data.shape[1] // s, s).sum(axis=(3, 1))
+    
+    # Count valid pixels per bin
+    valid_count = valid_pixel_mask.reshape(padded_data.shape[0] // s, s, padded_data.shape[1] // s, s).sum(axis=(3, 1))
+    
+    # Avoid division by zero
+    to_mask_out = valid_count == 0 #Cache this for later, so we can replace invalid values with NaN
+    valid_count[to_mask_out] = 1  # Set to 1 to avoid division by zero in empty bins
+
+    # Final binned data
+    binned_fits = binned / valid_count
+    
+    # Mask out the regions with no pixels
     binned_fits[to_mask_out] = np.NaN 
 
     return binned_fits
+
 
