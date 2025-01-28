@@ -68,6 +68,10 @@ def bin_fits(data: np.ndarray, s: int) -> np.ndarray:
 
     # Pad the data with zeros if necessary
     padded_data = np.pad(data, ((0, pad_x), (0, pad_y)), mode='constant', constant_values=0)
+    #Note: per numpy documentation, this pads pad_x zeros to the bottom and pad_y zeros are added to the right side.
+    #But no padding is added to the left or top. The reason this is important is due to the scaling of gofher parameters after fitting
+    #
+    #I *think* that because the parameters are in reference to 0,0 the padding at the bottom and right won't throw off the scaling of the parameters.
 
     # Create a valid pixel mask (ignoring the padded zeros, and any infs or nans from original data)
     valid_pixel_mask = np.logical_and(padded_data != 0,create_valid_pixel_mask(padded_data)).astype(int)
