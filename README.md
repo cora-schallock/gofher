@@ -1,7 +1,7 @@
 # gofher
 gofher - Galactic Orientation From Histogram Estimated Reddening
 
-From: Schalllock & Hayes 2024
+From: Schalllock & Hayes 2025
 
 Contact: coraschallock[at symbol]gmail[dot]com
 
