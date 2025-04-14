@@ -286,7 +286,7 @@ class galaxy:
             band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
             band_pair = self.get_band_pair(band_pair_key)
 
-            (bandpair_header,bandpair_row) = band_pair.get_verbose_csv_header_and_row(paper_label)
+            (bandpair_header,bandpair_row) = band_pair.get_verbose_csv_header_and_row(paper_label,use_stats=False) #set use_stats to true to show p-values
             header.extend(list(map(lambda x: "{}_{}".format(band_pair_key,x),bandpair_header)))
             row.extend(bandpair_row)
             if paper_label != '':
@@ -315,7 +315,7 @@ class galaxy:
         return (header,row)
     
     def get_ebm_csv_header_and_row(self,bands_in_order=[],paper_label=''):
-        """Generate galaxy's ebm csv information
+        """Generate galaxy's ebm csv informatioFn
 
         Args:
             bands_in_order: wavebands to use in order of bluest to reddest

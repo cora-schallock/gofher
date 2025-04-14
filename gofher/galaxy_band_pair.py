@@ -127,7 +127,7 @@ class galaxy_band_pair:
 
         return pos_x, pos_pdf, neg_x, neg_pdf
     
-    def get_verbose_csv_header_and_row(self,paper_label=''):
+    def get_verbose_csv_header_and_row(self,paper_label='',use_stats=False):
         """Get csv information in the following order:
         pos_side_mean, pos_side_std, neg_side_mean, neg_side_std, mannwhitneyu_stat,self.mannwhitneyu_p_value, classification_label, score?
         
@@ -144,8 +144,11 @@ class galaxy_band_pair:
         else:
             header = ["pos_mean","neg_mean","mean_diff"]
             row = [self.pos_mean, self.neg_mean, self.mean_diff]
-        if paper_label != '':
+        if paper_label != '' and use_stats:
             header.extend(["mannwhitneyu_stat","mannwhitneyu_pval","label","score"])
             row.extend([self.mannwhitneyu_stat,self.mannwhitneyu_p_value,self.classification_label,score_label(self.classification_label,paper_label)])
+        elif paper_label != '' and not use_stats:
+            header.extend(["label","score"])
+            row.extend([self.classification_label,score_label(self.classification_label,paper_label)])
 
         return (header,row)

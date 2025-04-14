@@ -59,7 +59,7 @@ def get_subplot_mosaic_strtings(bands_in_order):
     if len(band_keys)%2 != 0: band_keys.append('')
     return np.array(band_keys).reshape(int(len(band_keys)/2),2).tolist()
 
-def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path='',color_flip=False):
+def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path='',color_flip=False,show_stats=True):
     """Visualize the classification process gofher uses for determining label
 
     Displays ellipse mask, bisection mask on refernce image and histograms
@@ -75,6 +75,28 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
         bands_in_order: wavebands to use in order of bluest to reddest
         save_path: if given path saves visualize image, if not displays it
     """
+
+
+    import matplotlib.pyplot as plt
+    #import matplotlib
+    #matplotlib.rcParams['nbagg.transparent'] = False
+    
+    # in points - start with the body text size and play around
+    
+    SMALL_SIZE = int(20*1.5)
+    MEDIUM_SIZE = int(24*1.5)
+    BIGGER_SIZE = int(28*1.5)
+
+    plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
+    plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
+    plt.rc('axes', labelsize=BIGGER_SIZE)    # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+    plt.rc('ytick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
+    plt.rc('figure', titlesize=BIGGER_SIZE)
+    
+    plt.rc('font', family='Nimbus Roman No9 L')
+
     mo_labels = [['color','ref_band']]
     mo_labels.extend(get_subplot_mosaic_strtings(bands_in_order))
     height_ratios = [2] + [1] * int(len(mo_labels)-1) #only works if band_pair numbers is even
@@ -101,7 +123,11 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     std = ((sum_of_squares-(sum_of/n))/n)**0.5
 
     hist_range_to_plot = [mean-3*std,mean+3*std] #[min,max] value of range of histograms
-    
+
+    #make equal bin width:
+    binwidth = (hist_range_to_plot[1]-hist_range_to_plot[0])/50
+    bins = np.arange(min(hist_range_to_plot), max(hist_range_to_plot) + binwidth, binwidth)
+
     votes = []
     vote_outcome = "No vote"
     majority_vote = ''
@@ -110,19 +136,25 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
         band_pair = the_gal.get_band_pair(band_pair_key)
         votes.append(band_pair.classification_label)
 
-        axd[band_pair_key].hist(band_pair.pos_side,bins=30,color='#BE439F',alpha=0.5, weights=np.ones_like(band_pair.pos_side) / len(band_pair.pos_side))
-        axd[band_pair_key].axvline(band_pair.pos_mean,color='#BE439F',label="{} mean = {:.5f}".format(the_gal.pos_side_label,band_pair.pos_mean))
+        axd[band_pair_key].hist(band_pair.pos_side,bins=bins,color='#BE439F',alpha=0.5, weights=np.ones_like(band_pair.pos_side) / len(band_pair.pos_side))
+        axd[band_pair_key].axvline(band_pair.pos_mean,color='#BE439F',label="{} μ = {:.3f}".format(the_gal.pos_side_label,band_pair.pos_mean))
 
-        axd[band_pair_key].hist(band_pair.neg_side,bins=30,color='#DE9E36',alpha=0.5, weights=np.ones_like(band_pair.neg_side) / len(band_pair.neg_side))
-        axd[band_pair_key].axvline(band_pair.neg_mean,color='#B47613',label="{} mean = {:.5f}".format(the_gal.neg_side_label,band_pair.neg_mean))
+        axd[band_pair_key].hist(band_pair.neg_side,bins=bins,color='#DE9E36',alpha=0.5, weights=np.ones_like(band_pair.neg_side) / len(band_pair.neg_side))
+        axd[band_pair_key].axvline(band_pair.neg_mean,color='#B47613',label="{} μ = {:.3f}".format(the_gal.neg_side_label,band_pair.neg_mean))
         
         if band_pair._used_normed:
             pos_x, pos_pdf, neg_x, neg_pdf = band_pair.evaluate_fit_norm()
             axd[band_pair_key].plot(pos_x,pos_pdf/pos_pdf.sum(),c='#BE439F',alpha=0.5 ,linestyle='dashed')
             axd[band_pair_key].plot(neg_x,neg_pdf/neg_pdf.sum(),c='#DE9E36',alpha=0.5 ,linestyle='dashed')
             axd[band_pair_key].set_xlim(hist_range_to_plot[0],hist_range_to_plot[1])
-        axd[band_pair_key].set_title("{}: {} (pval={:.2E})".format(band_pair_key,band_pair.classification_label,band_pair.mannwhitneyu_p_value))
+        if show_stats:
+            axd[band_pair_key].set_title("{}: {} (pval={:.2E})".format(band_pair_key,band_pair.classification_label,band_pair.mannwhitneyu_p_value))
+        else:
+            axd[band_pair_key].set_title("{}: {}".format(band_pair_key,band_pair.classification_label))
         axd[band_pair_key].legend()
+
+        x_min, x_max = axd[band_pair_key].get_ylim()
+        axd[band_pair_key].set_ylim(x_min,x_max*1.5)
         
     if len(set(votes)) == 1:
         majority_vote = votes[0]
