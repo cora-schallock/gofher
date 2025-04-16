@@ -145,3 +145,59 @@ def run_gofher(name,fits_path_function,blue_to_red_bands_in_order,ref_bands_in_o
     the_gal.run_gofher(the_band_pairs)
 
     return the_gal
+
+def run_gofher_with_parameters(name,fits_path_function,blue_to_red_bands_in_order,ref_band,inital_gofher_params,paper_label="",mode="fixed"):
+    """Runs gofher of a single galaxy - using fixed parameteres (such as SpArcFiRe derived parameters)
+
+        Args:
+            name: the name of the galaxy
+            fits_path_function: a function that takes in galaxy_name and waveband and returns the file paths of the fits files
+            blue_to_red_bands_in_order: a list of the name of wavebands in order of Bluest to Reddest wavebands
+            ref_band: the specific ref band to us2
+            inital_gofher_params: the inital gofher parameters
+                Note: This can be derived from a different fitting process such as SpArcFiRe
+            paper_label: the baseline near side label gofher is comparing its answer to
+                Important: If no baseline label, leave as none
+            mode: specifies the run mode of gofher fitting
+                inital: inital_gofher_params used as inital ellipse and further fitting is done - see: run_inital_gofher_parameters_fitting()
+                fixed-center: inital_gofher_params center is fixed, but uses a and b found from sep - see: run_fixed_center_gofher_parameter_fitting()
+                fixed: inital_gofher_params used as is by gofher
+        Returns:
+            the galaxy
+    """
+
+    #Check provided mode is valid:
+    modes = ["inital","fixed-center","fixed"]
+    
+    if mode.strip().lower() in modes:
+        mode = mode.strip().lower()
+    else:
+        print('Warning: run_gofher_with_parameters() mode {} is invalid, must be either ["inital","fixed-center","fixed"], using mode "fixed"')
+
+    #Create galaxy:
+    the_gal = galaxy(name,paper_label)
+    
+    #Constuct individual galaxy bands:
+    for band in blue_to_red_bands_in_order:
+        the_gal.construct_band(band,fits_path_function(name,band))
+
+    #Use provided ref_band:
+    the_gal.ref_band = ref_band
+    
+    #Generate the_band_pairs:
+    the_band_pairs = list(itertools.combinations(blue_to_red_bands_in_order, 2))
+
+    if mode == "inital":
+        #Use inital_gofher_params as inital guess for gofher fitting:
+        the_gal = run_inital_gofher_parameters_fitting(the_gal, inital_gofher_params)
+    elif mode == "fixed-center":
+        #Use fixed center gofher_parameter fitting:
+        the_gal = run_fixed_center_gofher_parameter_fitting(the_gal, inital_gofher_params)
+    else:
+        #Use provided inital_gofher_params:
+        the_gal.gofher_params = inital_gofher_params
+
+    #Run gofher on the galaxy:
+    the_gal.run_gofher(the_band_pairs)
+
+    return the_gal
