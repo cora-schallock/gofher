@@ -59,7 +59,7 @@ def get_subplot_mosaic_strtings(bands_in_order):
     if len(band_keys)%2 != 0: band_keys.append('')
     return np.array(band_keys).reshape(int(len(band_keys)/2),2).tolist()
 
-def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path='',color_flip=False,show_stats=True):
+def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path='',color_flip=False,show_stats=True,visual_string=""):
     """Visualize the classification process gofher uses for determining label
 
     Displays ellipse mask, bisection mask on refernce image and histograms
@@ -186,7 +186,7 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     else:
         axd['color'].imshow(color_image)
     if paper_label != '':
-        axd['color'].set_title("{}\n paper label={}".format(the_gal.name,paper_label))
+        axd['color'].set_title("{} {}\n paper label={}".format(the_gal.name,visual_string,paper_label))
         axd['ref_band'].set_title('ref band: {}\ngofher label = {} ({})'.format(the_gal.ref_band,majority_vote,vote_outcome))
     else:
         axd['color'].set_title(the_gal.name)
