@@ -57,6 +57,9 @@ class galaxy_band_pair:
 
         self.mannwhitneyu_stat = 0.0
         self.mannwhitneyu_p_value = 0.0
+        
+        self.wasserstein_distance = np.inf
+        self.laplace_smoothed_kld = np.inf
 
         self.classification = 0
         self.classification_label = ""

@@ -1,4 +1,4 @@
-USE_BACKED_MATPLOT = True #Important: If saving many visualizations at once, set this to True to avoid slow down due to memeory leak
+USE_BACKED_MATPLOT = False #Important: If saving many visualizations at once, set this to True to avoid slow down due to memeory leak
 
 if USE_BACKED_MATPLOT:
     import matplotlib #https://matplotlib.org/stable/users/explain/figure/backends.html
@@ -12,6 +12,7 @@ import numpy as np
 from galaxy import galaxy
 from galaxy_band_pair import construct_galaxy_band_pair_key
 from spin_parity import score_label
+from compare_histograms import compute_laplace_smoothed_kld, compute_wasserstein_distance
 
 #DEFAULT_POSITIVE_RGB_VECTOR = [60/255,179/255,113/255] #mediumseagreen
 DEFAULT_POSITIVE_RGB_VECTOR = [190/255,67/255,159/255] #BE439F
@@ -59,7 +60,7 @@ def get_subplot_mosaic_strtings(bands_in_order):
     if len(band_keys)%2 != 0: band_keys.append('')
     return np.array(band_keys).reshape(int(len(band_keys)/2),2).tolist()
 
-def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path='',color_flip=False,show_stats=True):
+def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path='',color_flip=False,show_stats=True,visual_string="") -> dict:
     """Visualize the classification process gofher uses for determining label
 
     Displays ellipse mask, bisection mask on refernce image and histograms
@@ -74,6 +75,12 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
         color_image: the color refercne image that is displayed as thumbnail
         bands_in_order: wavebands to use in order of bluest to reddest
         save_path: if given path saves visualize image, if not displays it
+
+    Returns:
+        A dictionary containning the data from each hisogram
+            key: the band pair key
+            value: a list as follows: [list_of_bin_edges, bin_width, pos_counts, neg_counts]
+                Note: len(list_of_bin_edges) == len(pos_counts) == len(neg_counts)
     """
 
 
@@ -128,6 +135,7 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     binwidth = (hist_range_to_plot[1]-hist_range_to_plot[0])/50
     bins = np.arange(min(hist_range_to_plot), max(hist_range_to_plot) + binwidth, binwidth)
 
+    hist_dict = dict()
     votes = []
     vote_outcome = "No vote"
     majority_vote = ''
@@ -136,11 +144,30 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
         band_pair = the_gal.get_band_pair(band_pair_key)
         votes.append(band_pair.classification_label)
 
-        axd[band_pair_key].hist(band_pair.pos_side,bins=bins,color='#BE439F',alpha=0.5, weights=np.ones_like(band_pair.pos_side) / len(band_pair.pos_side))
+        #see: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hist.html
+        pos_counts, pos_bin_edges, _ = axd[band_pair_key].hist(band_pair.pos_side,bins=bins,color='#BE439F',alpha=0.5, weights=np.ones_like(band_pair.pos_side) / len(band_pair.pos_side))
         axd[band_pair_key].axvline(band_pair.pos_mean,color='#BE439F',label="{} μ = {:.3f}".format(the_gal.pos_side_label,band_pair.pos_mean))
 
-        axd[band_pair_key].hist(band_pair.neg_side,bins=bins,color='#DE9E36',alpha=0.5, weights=np.ones_like(band_pair.neg_side) / len(band_pair.neg_side))
+        neg_counts, neg_bin_edges, _ = axd[band_pair_key].hist(band_pair.neg_side,bins=bins,color='#DE9E36',alpha=0.5, weights=np.ones_like(band_pair.neg_side) / len(band_pair.neg_side))
         axd[band_pair_key].axvline(band_pair.neg_mean,color='#B47613',label="{} μ = {:.3f}".format(the_gal.neg_side_label,band_pair.neg_mean))
+
+        #hist_dict[band_pair_key] = [bin_edges, binwidth, pos_counts, neg_counts]
+        #from scipy.special import rel_entr
+        #print(pos_counts)
+        #print(neg_counts)
+        #print(len(band_pair.pos_side)*pos_counts)
+        #print(rel_entr(pos_counts, neg_counts))
+        #print(compute_chisquare(pos_counts, neg_counts))
+        #print(compute_kld(pos_counts, neg_counts))
+        #print()
+        
+        
+        band_pair.wasserstein_distance = compute_wasserstein_distance(pos_bin_edges, neg_bin_edges, pos_counts, neg_counts)
+        
+        pos_n = len(band_pair.pos_side)
+        neg_n = len(band_pair.neg_side)
+        band_pair.laplace_smoothed_kld = compute_laplace_smoothed_kld(pos_counts, neg_counts, pos_n,neg_n)
+        
         
         if band_pair._used_normed:
             pos_x, pos_pdf, neg_x, neg_pdf = band_pair.evaluate_fit_norm()
@@ -186,7 +213,7 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     else:
         axd['color'].imshow(color_image)
     if paper_label != '':
-        axd['color'].set_title("{}\n paper label={}".format(the_gal.name,paper_label))
+        axd['color'].set_title("{} {}\n paper label={}".format(the_gal.name,visual_string,paper_label))
         axd['ref_band'].set_title('ref band: {}\ngofher label = {} ({})'.format(the_gal.ref_band,majority_vote,vote_outcome))
     else:
         axd['color'].set_title(the_gal.name)
@@ -198,3 +225,5 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
         plt.close(fig)
     else:
         plt.show()
+
+    return hist_dict
