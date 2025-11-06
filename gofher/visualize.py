@@ -135,7 +135,6 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     binwidth = (hist_range_to_plot[1]-hist_range_to_plot[0])/50
     bins = np.arange(min(hist_range_to_plot), max(hist_range_to_plot) + binwidth, binwidth)
 
-    hist_dict = dict()
     votes = []
     vote_outcome = "No vote"
     majority_vote = ''
@@ -150,17 +149,6 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
 
         neg_counts, neg_bin_edges, _ = axd[band_pair_key].hist(band_pair.neg_side,bins=bins,color='#DE9E36',alpha=0.5, weights=np.ones_like(band_pair.neg_side) / len(band_pair.neg_side))
         axd[band_pair_key].axvline(band_pair.neg_mean,color='#B47613',label="{} μ = {:.3f}".format(the_gal.neg_side_label,band_pair.neg_mean))
-
-        #hist_dict[band_pair_key] = [bin_edges, binwidth, pos_counts, neg_counts]
-        #from scipy.special import rel_entr
-        #print(pos_counts)
-        #print(neg_counts)
-        #print(len(band_pair.pos_side)*pos_counts)
-        #print(rel_entr(pos_counts, neg_counts))
-        #print(compute_chisquare(pos_counts, neg_counts))
-        #print(compute_kld(pos_counts, neg_counts))
-        #print()
-        
         
         band_pair.wasserstein_distance = compute_wasserstein_distance(pos_bin_edges, neg_bin_edges, pos_counts, neg_counts)
         
@@ -225,5 +213,3 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
         plt.close(fig)
     else:
         plt.show()
-
-    return hist_dict

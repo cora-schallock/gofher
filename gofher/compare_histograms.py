@@ -5,11 +5,7 @@ from scipy.stats import entropy
 from scipy.stats import chisquare
 from scipy.stats import wasserstein_distance
 
-#see: https://safjan.com/metrics-tox-compare-histograms/
-
-def compute_chisquare(freq_pos, freq_neg):
-    #see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.chisquare.html
-    return chisquare(freq_pos, freq_neg)
+#see: https://safjan.com/metrics-to-compare-histograms/
 
 def compute_wasserstein_distance(pos_bin_edge, neg_bin_edge, prob_pos, prob_neg):
     pos_bin_centers = (pos_bin_edge[:-1] + pos_bin_edge[1:])/2

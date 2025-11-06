@@ -139,7 +139,7 @@ class galaxy_band_pair:
                 Important: If provided score will be included, calcualted from score_label()
         """
         if self._used_normed:
-            header = ["pos_mean","pos_std","neg_mean","neg_std","ks_stat","ks_pval","label"]
+            header = ["pos_mean","pos_std","neg_mean","neg_std"]
             row = [self.pos_mean,
                    self.pos_fit_norm_std,
                    self.neg_mean,
@@ -148,8 +148,18 @@ class galaxy_band_pair:
             header = ["pos_mean","neg_mean","mean_diff"]
             row = [self.pos_mean, self.neg_mean, self.mean_diff]
         if paper_label != '' and use_stats:
-            header.extend(["mannwhitneyu_stat","mannwhitneyu_pval","label","score"])
-            row.extend([self.mannwhitneyu_stat,self.mannwhitneyu_p_value,self.classification_label,score_label(self.classification_label,paper_label)])
+            header.extend(["mannwhitneyu_stat",
+                           "mannwhitneyu_pval",
+                           "wasserstein_distance",
+                           "laplace_smoothed_kld",
+                           "label",
+                           "score"])
+            row.extend([self.mannwhitneyu_stat,
+                        self.mannwhitneyu_p_value,
+                        self.wasserstein_distance,
+                        self.laplace_smoothed_kld,
+                        self.classification_label,
+                        score_label(self.classification_label,paper_label)])
         elif paper_label != '' and not use_stats:
             header.extend(["label","score"])
             row.extend([self.classification_label,score_label(self.classification_label,paper_label)])

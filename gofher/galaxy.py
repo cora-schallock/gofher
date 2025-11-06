@@ -257,7 +257,7 @@ class galaxy:
         """given a band_pair key, get specified band_pair"""
         return self.band_pairs[band_pair_key]
     
-    def get_verbose_csv_header_and_row(self,bands_in_order=[],paper_label=''):
+    def get_verbose_csv_header_and_row(self,bands_in_order=[],paper_label='',use_stats=True):
         """Generate galaxy's csv information
 
         Args:
@@ -286,7 +286,7 @@ class galaxy:
             band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
             band_pair = self.get_band_pair(band_pair_key)
 
-            (bandpair_header,bandpair_row) = band_pair.get_verbose_csv_header_and_row(paper_label,use_stats=False) #set use_stats to true to show p-values
+            (bandpair_header,bandpair_row) = band_pair.get_verbose_csv_header_and_row(paper_label,use_stats=use_stats) #set use_stats to true to show p-values
             header.extend(list(map(lambda x: "{}_{}".format(band_pair_key,x),bandpair_header)))
             row.extend(bandpair_row)
             if paper_label != '':
