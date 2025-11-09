@@ -1,6 +1,5 @@
 import numpy as np
 
-from pyemd import emd
 from scipy.stats import entropy
 from scipy.stats import chisquare
 from scipy.stats import wasserstein_distance
