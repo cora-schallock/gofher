@@ -12,7 +12,12 @@ import numpy as np
 from galaxy import galaxy
 from galaxy_band_pair import construct_galaxy_band_pair_key
 from spin_parity import score_label
-from compare_histograms import compute_laplace_smoothed_kld, compute_wasserstein_distance
+from compare_histograms import compute_laplace_smoothed_kld, compute_wasserstein_distance, permutation_test_wasserstein_distance2, permutation_test_wasserstein_distance
+
+from scipy import stats
+def wasserstein_statistic(x, y):
+    """Calculates the Wasserstein distance between two samples."""
+    return stats.wasserstein_distance(x, y)
 
 #DEFAULT_POSITIVE_RGB_VECTOR = [60/255,179/255,113/255] #mediumseagreen
 DEFAULT_POSITIVE_RGB_VECTOR = [190/255,67/255,159/255] #BE439F
@@ -59,6 +64,16 @@ def get_subplot_mosaic_strtings(bands_in_order):
         band_keys.append(construct_galaxy_band_pair_key(blue_band,red_band))
     if len(band_keys)%2 != 0: band_keys.append('')
     return np.array(band_keys).reshape(int(len(band_keys)/2),2).tolist()
+
+def shift_data(data, margin=0.0125):
+    if np.min(data) > margin:
+        return data, 0.0
+    elif np.min(data) > 0:
+        delta = margin-np.min(data)
+        return data+delta, -delta
+    else:
+        delta = np.min(data) - margin
+        return data-delta, delta
 
 def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], paper_label='', save_path='',color_flip=False,show_stats=True,visual_string="") -> dict:
     """Visualize the classification process gofher uses for determining label
@@ -132,7 +147,8 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     hist_range_to_plot = [mean-3*std,mean+3*std] #[min,max] value of range of histograms
 
     #make equal bin width:
-    binwidth = (hist_range_to_plot[1]-hist_range_to_plot[0])/50
+    bincount = 50
+    binwidth = (hist_range_to_plot[1]-hist_range_to_plot[0])/bincount
     bins = np.arange(min(hist_range_to_plot), max(hist_range_to_plot) + binwidth, binwidth)
 
     votes = []
@@ -140,17 +156,88 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     majority_vote = ''
     for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
         band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
+        print(band_pair_key)
         band_pair = the_gal.get_band_pair(band_pair_key)
         votes.append(band_pair.classification_label)
 
         #see: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hist.html
         pos_counts, pos_bin_edges, _ = axd[band_pair_key].hist(band_pair.pos_side,bins=bins,color='#BE439F',alpha=0.5, weights=np.ones_like(band_pair.pos_side) / len(band_pair.pos_side))
+        #pos_counts, pos_bin_edges, _ = axd[band_pair_key].hist(band_pair.pos_side,bins=bins,color='#BE439F',alpha=0.5, density=True)
         axd[band_pair_key].axvline(band_pair.pos_mean,color='#BE439F',label="{} μ = {:.3f}".format(the_gal.pos_side_label,band_pair.pos_mean))
 
         neg_counts, neg_bin_edges, _ = axd[band_pair_key].hist(band_pair.neg_side,bins=bins,color='#DE9E36',alpha=0.5, weights=np.ones_like(band_pair.neg_side) / len(band_pair.neg_side))
+        #neg_counts, neg_bin_edges, _ = axd[band_pair_key].hist(band_pair.neg_side,bins=bins,color='#DE9E36',alpha=0.5, density=True)
         axd[band_pair_key].axvline(band_pair.neg_mean,color='#B47613',label="{} μ = {:.3f}".format(the_gal.neg_side_label,band_pair.neg_mean))
+
+        pos_shift, pos_offset = shift_data(band_pair.pos_side)
+        print(np.min(band_pair.pos_side),np.max(band_pair.pos_side))
+        print(np.min(pos_shift),np.max(pos_shift))
+        neg_shift, neg_offset = shift_data(band_pair.neg_side)
+        print(np.min(band_pair.neg_side),np.max(band_pair.neg_side))
+        print(np.min(neg_shift),np.max(neg_shift))
+
+        pos_sample_mean = np.mean(pos_shift)
+        pos_sample_variance = np.var(pos_shift)
+        pos_initial_a = (pos_sample_mean**2) / pos_sample_variance
+        pos_initial_scale = pos_sample_variance / pos_sample_mean
+        pos_alpha, _, pos_beta = stats.gamma.fit(pos_shift, pos_initial_a, floc=0, scale=pos_initial_scale)
+
+        neg_sample_mean = np.mean(neg_shift)
+        neg_sample_variance = np.var(neg_shift)
+        neg_initial_a = (neg_sample_mean**2) / neg_sample_variance
+        neg_initial_scale = neg_sample_variance / neg_sample_mean
+        neg_alpha, _, neg_beta = stats.gamma.fit(neg_shift, neg_initial_a, floc=0, scale=neg_initial_scale)
+
+        #x = np.linspace(np.min(band_pair.pos_side),np.max(band_pair.pos_side), 200)
+        x = np.linspace(hist_range_to_plot[0],hist_range_to_plot[1], 2000)
+        pdf_fitted = stats.gamma.pdf(x, pos_alpha, loc=pos_offset, scale=pos_beta)
+        axd[band_pair_key].plot(x, pdf_fitted, lw=2, color='#BE439F') #color="#762A63"
+
+        #x = np.linspace(np.min(band_pair.neg_side),np.max(band_pair.neg_side), 200)
+        pdf_fitted = stats.gamma.pdf(x, neg_alpha, loc=neg_offset, scale=neg_beta)
+        axd[band_pair_key].plot(x, pdf_fitted, lw=2, color='#B47613') #color="#72521E"
+
+        """
+        a_fit, loc_fit, scale_fit = stats.gamma.fit(band_pair.pos_side)
+        x = np.linspace(hist_range_to_plot[0],hist_range_to_plot[1], 200)
+        pdf_fitted = stats.gamma.pdf(x, a_fit, loc=loc_fit, scale=scale_fit)/100.0
+        axd[band_pair_key].plot(x, pdf_fitted, 'r-', lw=2,color="#762A63")
+
+        a_fit, loc_fit, scale_fit = stats.gamma.fit(band_pair.neg_side)
+        x = np.linspace(hist_range_to_plot[0],hist_range_to_plot[1], 200)
+        pdf_fitted = stats.gamma.pdf(x, a_fit, loc=loc_fit, scale=scale_fit)/100.0
+        axd[band_pair_key].plot(x, pdf_fitted, 'r-', lw=2,color="#72521E")
+        """
+
         
-        band_pair.wasserstein_distance = compute_wasserstein_distance(pos_bin_edges, neg_bin_edges, pos_counts, neg_counts)
+        #band_pair.wasserstein_distance = compute_wasserstein_distance(pos_bin_edges, neg_bin_edges, pos_counts, neg_counts)
+        #print(permutation_test_wasserstein_distance(band_pair.pos_side, band_pair.neg_side,hist_range_to_plot,bincount))
+        #print(permutation_test_wasserstein_distance2(pos_bin_edges, neg_bin_edges, pos_counts, neg_counts))
+
+        #print(band_pair_key)
+        #if band_pair_key == 'g-r':
+        #    print(list(band_pair.pos_side))
+        #    print()
+        #    print(list(band_pair.neg_side))
+        #from permutation_test import wasserstein_permutation_test
+        #print(wasserstein_permutation_test(band_pair.pos_side, band_pair.neg_side))
+        """
+        print(print(len(band_pair.pos_side)))
+        print(print(len(band_pair.neg_side)))
+        result = stats.permutation_test(
+             (band_pair.pos_side, band_pair.neg_side),
+             wasserstein_statistic,
+             permutation_type='pairings',
+             n_resamples=10,  # Number of permutations
+             alternative='greater', # or 'less', 'greater'
+        )
+        """
+
+
+        #print(f"Observed Wasserstein distance: {result.statistic}")
+        #print(f"P-value: {result.pvalue}")
+        #print(f"Null distribution (first 5 values): {result.null_distribution[:5]}")
+
         
         pos_n = len(band_pair.pos_side)
         neg_n = len(band_pair.neg_side)
@@ -169,7 +256,7 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
         axd[band_pair_key].legend()
 
         x_min, x_max = axd[band_pair_key].get_ylim()
-        axd[band_pair_key].set_ylim(x_min,x_max*1.5)
+        axd[band_pair_key].set_ylim(x_min,x_max*1.125)
         
     if len(set(votes)) == 1:
         majority_vote = votes[0]
