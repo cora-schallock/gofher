@@ -7,6 +7,8 @@ from matrix import normalize_matrix
 from spin_parity import score_label
 from classify import pos_neg_label_from_theta
 
+from stats import fit_gamma_distro, plot_fitted_gamma
+
 class InvalidGalaxyBandPair(Exception):
     """exception for invalid band pair"""
     pass
@@ -54,6 +56,15 @@ class galaxy_band_pair:
 
         self.pos_fit_norm_std = None
         self.neg_fit_norm_std = None
+        
+        self.pos_gamma_alpha = None
+        self.pos_gamma_loc = None
+        self.pos_gamma_beta = None
+        
+        self.neg_gamma_alpha = None
+        self.neg_gamma_loc = None
+        self.neg_gamma_beta = None
+        
 
         self.mannwhitneyu_stat = 0.0
         self.mannwhitneyu_p_value = 0.0
@@ -66,6 +77,7 @@ class galaxy_band_pair:
 
         self._has_run = False
         self._used_normed = False
+        self._fitted_gamma = False
 
     def construct_diff_image(self):
         """Perform a pixel-by-pixel subtraction of normed blue_band by the normed red_band"""
@@ -87,7 +99,7 @@ class galaxy_band_pair:
 
         self._has_run = True
 
-    def classify(self, theta: float, use_norm: bool = False):
+    def classify(self, theta: float, use_norm: bool = False, fit_gamma: bool = True):
         """Classifies the waveband pairs and sets the classification_label
         
         Args: 
@@ -104,6 +116,10 @@ class galaxy_band_pair:
         else:
             self.pos_mean = np.mean(self.pos_side)
             self.neg_mean = np.mean(self.neg_side)
+
+        if fit_gamma:
+            self.pos_gamma_alpha, self.pos_gamma_loc, self.pos_gamma_beta = fit_gamma_distro(self.pos_side)
+            self.neg_gamma_alpha, self.neg_gamma_loc, self.neg_gamma_beta = fit_gamma_distro(self.neg_side)
             
         self.mean_diff = self.pos_mean-self.neg_mean
 
@@ -116,9 +132,10 @@ class galaxy_band_pair:
         self.mannwhitneyu_p_value = mwu.pvalue
 
         self._used_normed = use_norm
+        self._fitted_gamma = fit_gamma
 
     def evaluate_fit_norm(self, samples=64):
-        """Classifies the waveband pairs and sets the classification_label
+        """Prepares normed pdfs of pos and neg sides for plotting
         
         Args: 
             samples: number of times each curve is sampled
@@ -129,6 +146,13 @@ class galaxy_band_pair:
         neg_pdf = stats.norm.pdf(neg_x, self.neg_fit_norm_mean, self.neg_fit_norm_std)
 
         return pos_x, pos_pdf, neg_x, neg_pdf
+    
+    def evaluate_fit_gamma(self, lower=0.0, upper=1.0):
+        pos_x, pos_y =plot_fitted_gamma(self.pos_gamma_alpha, self.pos_gamma_loc, self.pos_gamma_beta, lower, upper)
+        neg_x, neg_y = plot_fitted_gamma(self.neg_gamma_alpha, self.neg_gamma_loc, self.neg_gamma_beta, lower, upper)
+
+        return pos_x, pos_y, neg_x, neg_y
+
     
     def get_verbose_csv_header_and_row(self,paper_label='',use_stats=False):
         """Get csv information in the following order:
