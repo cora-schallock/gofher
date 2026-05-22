@@ -12,7 +12,7 @@ import numpy as np
 from galaxy import galaxy
 from galaxy_band_pair import construct_galaxy_band_pair_key
 from spin_parity import score_label
-from compare_histograms import compute_laplace_smoothed_kld, compute_wasserstein_distance, permutation_test_wasserstein_distance2, permutation_test_wasserstein_distance
+from stats import compute_laplace_smoothed_kld
 
 from scipy import stats
 def wasserstein_statistic(x, y):
@@ -123,14 +123,17 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     n = 0
 
     for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
-        band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
-        band_pair = the_gal.get_band_pair(band_pair_key)
-        elements = band_pair.diff_image[the_gal.area_to_diff]
+        try:
+            band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
+            band_pair = the_gal.get_band_pair(band_pair_key)
+            elements = band_pair.diff_image[the_gal.area_to_diff]
 
-        sum_of += np.sum(elements)
-        sum_of_squares += np.sum(elements**2)
-        n += len(elements)
-
+            sum_of += np.sum(elements)
+            sum_of_squares += np.sum(elements**2)
+            n += len(elements)
+        except KeyError:
+            pass
+        
     mean = sum_of/n
     std = ((sum_of_squares-(sum_of/n))/n)**0.5
 
@@ -145,10 +148,12 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
     vote_outcome = "No vote"
     majority_vote = ''
     for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
-        band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
-        print(band_pair_key)
-        band_pair = the_gal.get_band_pair(band_pair_key)
-        votes.append(band_pair.classification_label)
+        try:
+            band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
+            band_pair = the_gal.get_band_pair(band_pair_key)
+            votes.append(band_pair.classification_label)
+        except KeyError:
+            continue
 
         #see: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hist.html
         if band_pair._fitted_gamma:
@@ -167,6 +172,11 @@ def visualize(the_gal: galaxy, color_image: np.ndarray, bands_in_order = [], pap
                 axd[band_pair_key].plot(pos_x,pos_pdf/pos_pdf.sum(),c='#BE439F',alpha=0.5 ,linestyle='dashed')
                 axd[band_pair_key].plot(neg_x,neg_pdf/neg_pdf.sum(),c='#DE9E36',alpha=0.5 ,linestyle='dashed')
                 axd[band_pair_key].set_xlim(hist_range_to_plot[0],hist_range_to_plot[1])
+
+        #calculate kld with histogram bins:
+        pos_n = len(band_pair.pos_side)
+        neg_n = len(band_pair.neg_side)
+        band_pair.laplace_smoothed_kld = compute_laplace_smoothed_kld(pos_counts, neg_counts, pos_n, neg_n)
 
         axd[band_pair_key].axvline(band_pair.pos_mean,color='#BE439F',label="{} μ = {:.3f}".format(the_gal.pos_side_label,band_pair.pos_mean))
         axd[band_pair_key].axvline(band_pair.neg_mean,color='#B47613',label="{} μ = {:.3f}".format(the_gal.neg_side_label,band_pair.neg_mean))

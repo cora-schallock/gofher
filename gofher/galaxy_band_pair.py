@@ -7,7 +7,7 @@ from matrix import normalize_matrix
 from spin_parity import score_label
 from classify import pos_neg_label_from_theta
 
-from stats import fit_gamma_distro, plot_fitted_gamma
+from stats import fit_gamma_distro, plot_fitted_gamma, run_wasserstein
 
 class InvalidGalaxyBandPair(Exception):
     """exception for invalid band pair"""
@@ -70,6 +70,10 @@ class galaxy_band_pair:
         self.mannwhitneyu_p_value = 0.0
         
         self.wasserstein_distance = np.inf
+        self.mean_wasserstein_distance = np.inf
+        self.wasserstein_cf_int_low = np.inf
+        self.wasserstein_cf_int_up = np.inf
+
         self.laplace_smoothed_kld = np.inf
 
         self.classification = 0
@@ -78,6 +82,7 @@ class galaxy_band_pair:
         self._has_run = False
         self._used_normed = False
         self._fitted_gamma = False
+        self._used_wasserstein = False
 
     def construct_diff_image(self):
         """Perform a pixel-by-pixel subtraction of normed blue_band by the normed red_band"""
@@ -99,7 +104,7 @@ class galaxy_band_pair:
 
         self._has_run = True
 
-    def classify(self, theta: float, use_norm: bool = False, fit_gamma: bool = True):
+    def classify(self, theta: float, use_norm: bool = False, fit_gamma: bool = True, use_wasserstein: bool = True):
         """Classifies the waveband pairs and sets the classification_label
         
         Args: 
@@ -127,12 +132,20 @@ class galaxy_band_pair:
         self.classification = np.sign(self.mean_diff)
         self.classification_label = nl if -np.sign(self.mean_diff) == -1.0 else pl
 
-        mwu = mannwhitneyu(self.pos_side,self.neg_side)
-        self.mannwhitneyu_stat = mwu.statistic
-        self.mannwhitneyu_p_value = mwu.pvalue
+        if use_wasserstein:
+            mwu = mannwhitneyu(self.pos_side,self.neg_side)
+            self.mannwhitneyu_stat = mwu.statistic
+            self.mannwhitneyu_p_value = mwu.pvalue
+
+            [wd, wd_mean, wd_conf_interval_lower, wd_conf_interval_upper] = run_wasserstein(self.pos_side,self.neg_side)
+            self.wasserstein_distance = wd
+            self.mean_wasserstein_distance = wd_mean
+            self.wasserstein_cf_int_low = wd_conf_interval_lower
+            self.wasserstein_cf_int_up = wd_conf_interval_upper
 
         self._used_normed = use_norm
         self._fitted_gamma = fit_gamma
+        self._used_wasserstein = use_wasserstein
 
     def evaluate_fit_norm(self, samples=64):
         """Prepares normed pdfs of pos and neg sides for plotting
@@ -163,24 +176,31 @@ class galaxy_band_pair:
                 Important: If provided score will be included, calcualted from score_label()
         """
         if self._used_normed:
-            header = ["pos_mean","pos_std","neg_mean","neg_std"]
-            row = [self.pos_mean,
+            header = ["is_valid","pos_mean","pos_std","neg_mean","neg_std"]
+            row = [1,
+                   self.pos_mean,
                    self.pos_fit_norm_std,
                    self.neg_mean,
                    self.neg_fit_norm_std]
         else:
-            header = ["pos_mean","neg_mean","mean_diff"]
-            row = [self.pos_mean, self.neg_mean, self.mean_diff]
+            header = ["is_valid","pos_mean","neg_mean","mean_diff"]
+            row = [1,self.pos_mean, self.neg_mean, self.mean_diff]
         if paper_label != '' and use_stats:
             header.extend(["mannwhitneyu_stat",
                            "mannwhitneyu_pval",
                            "wasserstein_distance",
+                           "mean_wasserstein_distance",
+                           "wasserstein_distance_confidence_interval_lower",
+                           "wasserstein_distance_confidence_interval_lower",
                            "laplace_smoothed_kld",
                            "label",
                            "score"])
             row.extend([self.mannwhitneyu_stat,
                         self.mannwhitneyu_p_value,
                         self.wasserstein_distance,
+                        self.mean_wasserstein_distance,
+                        self.wasserstein_cf_int_low,
+                        self.wasserstein_cf_int_up,
                         self.laplace_smoothed_kld,
                         self.classification_label,
                         score_label(self.classification_label,paper_label)])
@@ -188,4 +208,21 @@ class galaxy_band_pair:
             header.extend(["label","score"])
             row.extend([self.classification_label,score_label(self.classification_label,paper_label)])
 
+        return (header,row)
+    
+    def get_gamma_csv_header_and_row(self):
+        header = ["is_valid",
+                  "pos_gamma_alpha",
+                  "pos_gamma_loc",
+                  "pos_gamma_beta",
+                  "neg_gamma_alpha",
+                  "neg_gamma_loc",
+                  "neg_gamma_beta",]
+        row = [1,
+               self.pos_gamma_alpha,
+               self.pos_gamma_loc,
+               self.pos_gamma_beta,
+               self.neg_gamma_alpha,
+               self.neg_gamma_loc,
+               self.neg_gamma_beta]
         return (header,row)

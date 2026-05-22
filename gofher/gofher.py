@@ -145,3 +145,55 @@ def run_gofher(name,fits_path_function,blue_to_red_bands_in_order,ref_bands_in_o
     the_gal.run_gofher(the_band_pairs)
 
     return the_gal
+
+def run_gofher_with_parameters(name,fits_path_function,blue_to_red_bands_in_order,ref_band,inital_gofher_params,paper_label="", s: int=None, bin_prior_to_param_fitting=False):
+    """Runs gofher of a single galaxy - using fixed parameteres (such as SpArcFiRe derived parameters)
+
+        Args:
+            name: the name of the galaxy
+            fits_path_function: a function that takes in galaxy_name and waveband and returns the file paths of the fits files
+            blue_to_red_bands_in_order: a list of the name of wavebands in order of Bluest to Reddest wavebands
+            ref_band: the specific ref band to us2
+            inital_gofher_params: the inital gofher parameters
+                Note: This can be derived from a different fitting process such as SpArcFiRe
+            paper_label: the baseline near side label gofher is comparing its answer to
+                Important: If no baseline label, leave as none
+            mode: specifies the run mode of gofher fitting
+                inital: inital_gofher_params used as inital ellipse and further fitting is done - see: run_inital_gofher_parameters_fitting()
+                fixed-center: inital_gofher_params center is fixed, but uses a and b found from sep - see: run_fixed_center_gofher_parameter_fitting()
+                fixed: inital_gofher_params used as is by gofher
+            s: the pixel binsize of the fits files in both x and y directions (positive integer evenly divisible by shape of fits)
+                Important: If no binning, leave as none
+            bin_prior_to_param_fitting: if true, bin all fits data in self.bands before gofher parameter fitting
+                if false, bin all fits data in self.bands after gofher parameter fitting
+                Importnant: If no binning (s=None), this is ignored
+        Returns:
+            the galaxy
+    """
+    #Create galaxy:
+    the_gal = galaxy(name,paper_label)
+    
+    #Constuct individual galaxy bands:
+    for band in blue_to_red_bands_in_order:
+        the_gal.construct_band(band,fits_path_function(name,band))
+
+    #Use provided ref_band:
+    the_gal.ref_band = ref_band
+    
+    #Generate the_band_pairs:
+    the_band_pairs = list(itertools.combinations(blue_to_red_bands_in_order, 2))
+
+    #if bin_prior_to_param_fitting, performing pixel binning BEFORE gofher parameter fitting:
+    if s is not None and bin_prior_to_param_fitting: the_gal.bin_all_bands(s)
+
+    the_gal.gofher_params = inital_gofher_params
+
+    #if !bin_prior_to_param_fitting, performing pixel binning AFTER gofher parameter fitting and MUST CALL the_gal.gofher_params.set_bin_size_after_fitting(s):
+    if s is not None and not bin_prior_to_param_fitting: 
+        the_gal.bin_all_bands(s)
+        the_gal.gofher_params.set_bin_size_after_fitting(s) #IMPORTANT: This is only to be called if pixel binning is AFTER gofher parameter fitting
+
+    #Run gofher on the galaxy:
+    the_gal.run_gofher(the_band_pairs)
+
+    return the_gal

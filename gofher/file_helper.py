@@ -16,6 +16,14 @@ def write_csv(csv_path: str ,csv_col: list,csv_rows: list):
         writer = csv.writer(f)
         writer.writerows(to_write)
 
+def construct_csv_dict(csv_path: str, the_key: str, the_value: str):
+    with open(csv_path, mode='r', newline='') as file:
+        to_return = dict()
+        csv_dict_reader = csv.DictReader(file)
+        for row in csv_dict_reader:
+            to_return[row[the_key]] = row[the_value]
+        return to_return
+
 
 def check_if_folder_exists_and_create(path: str):
     """Addure folder exists

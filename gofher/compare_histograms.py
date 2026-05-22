@@ -30,15 +30,5 @@ def permutation_test_wasserstein_distance2(pos_bin_edge, neg_bin_edge, prob_pos,
     was_lambda = lambda x,y: compute_wasserstein_distance2(pos_bin_edge, neg_bin_edge, x, y)
     return permutation_test([prob_pos, prob_neg],was_lambda,alternative='greater')
 
-def compute_laplace_smoothed_kld(prob_pos,prob_neg, pos_n, neg_n, alpha=1):
-    pos_ni = pos_n*prob_pos
-    neg_ni = neg_n*prob_neg
-    
-    pos_denomenator = pos_n + alpha*len(prob_pos)
-    neg_denomenator = neg_n + alpha*len(prob_neg)
-    
-    prob_pos_prime = (pos_ni + np.ones(np.size(pos_ni))*alpha)/pos_denomenator
-    prob_neg_prime = (neg_ni + np.ones(np.size(neg_ni))*alpha)/neg_denomenator
-    
-    return entropy(prob_pos_prime, prob_neg_prime)
+
 

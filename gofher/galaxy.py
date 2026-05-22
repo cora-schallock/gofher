@@ -1,6 +1,7 @@
 import copy
 import itertools
 import numpy as np
+import os
 
 from fits import read_fits, bin_fits
 from spin_parity import score_label
@@ -34,6 +35,10 @@ class galaxy:
         self.folder = ''
 
         self.disparate_sides_vote = None
+
+        self._used_normed = False
+        self._fit_gamma = False
+        self._use_wasserstein = False
 
     def has_band(self, band: str) -> bool:
         """Check if galaxy has waveband with name
@@ -73,6 +78,9 @@ class galaxy:
             band: the name of the waveband
             fits_path: the file path of the fits image
         """
+        if os.path.exists(fits_path) is False: 
+            print('construct_band: fits_path {} does not exist'.format(fits_path))
+            return None
         the_data = read_fits(fits_path)
         self.bands[band] = galaxy_band(band,the_data)
 
@@ -197,10 +205,11 @@ class galaxy:
             the_band_pair = self.construct_band_pair(blue_band,red_band)
 
             the_band_pair.run(pos_mask,neg_mask,self.area_to_diff)
-            the_band_pair.classify(self.gofher_params.theta)
+            the_band_pair.classify(self.gofher_params.theta, use_norm=self._used_normed, fit_gamma=self._fit_gamma,use_wasserstein=self._use_wasserstein)
 
-        #6) calcuylate cumulative score
-        self.cumulative_score = int(np.sign(self.cumulative_classification_vote_count))
+        #6) calculate cumulative score
+        #Note: not being used anymore because not passing in value
+        #self.cumulative_score = int(np.sign(self.cumulative_classification_vote_count))
 
     def run_ebm(self, bands_in_order = []):
         """Calculate the most statistically signifcant red band
@@ -283,16 +292,39 @@ class galaxy:
         band_pair_labels = []
 
         for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
-            band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
-            band_pair = self.get_band_pair(band_pair_key)
+            try:
+                band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
+                band_pair = self.get_band_pair(band_pair_key)
 
-            (bandpair_header,bandpair_row) = band_pair.get_verbose_csv_header_and_row(paper_label,use_stats=use_stats) #set use_stats to true to show p-values
+                (bandpair_header,bandpair_row) = band_pair.get_verbose_csv_header_and_row(paper_label,use_stats=use_stats) #set use_stats to true to show p-values
+                band_pair_labels.append(band_pair.classification_label)
+            except KeyError:
+                if self._used_normed:
+                    bandpair_header = ["is_valid","pos_mean","pos_std","neg_mean","neg_std"]
+                    bandpair_row = [0,"","","",""]
+                else:
+                    bandpair_header = ["is_valid","pos_mean","neg_mean","mean_diff"]
+                    bandpair_row = [0,"","",""]
+                if paper_label != '' and use_stats:
+                    bandpair_header.extend(["mannwhitneyu_stat",
+                           "mannwhitneyu_pval",
+                           "wasserstein_distance",
+                           "mean_wasserstein_distance",
+                           "wasserstein_distance_confidence_interval_lower",
+                           "wasserstein_distance_confidence_interval_lower",
+                           "laplace_smoothed_kld",
+                           "label",
+                           "score"])
+                    bandpair_row.extend(["","","","","","","","",0])
+                elif paper_label != '' and not use_stats:
+                    bandpair_header.extend(["label","score"])
+                    bandpair_row.extend(["",0])
             header.extend(list(map(lambda x: "{}_{}".format(band_pair_key,x),bandpair_header)))
             row.extend(bandpair_row)
             if paper_label != '':
                 score += bandpair_row[-1]
 
-            band_pair_labels.append(band_pair.classification_label)
+            
         
         if paper_label != '':
             header.extend(['total','score'])
@@ -338,7 +370,29 @@ class galaxy:
             header.extend(["ebm_label","ebm_pval_winning","ebm_pval_losing"])
             row.extend([ebm_label,"{:.2E}".format(ebm_pval_winning),"{:.2E}".format(ebm_pval_losing)])
 
-        return (header,row) 
+        return (header,row)
+    
+    def get_gamma_csv_header_and_row(self,bands_in_order=[]):
+        header = ["name"]
+        row = [self.name]
+
+        for (blue_band,red_band) in itertools.combinations(bands_in_order, 2):
+            try:
+                band_pair_key = construct_galaxy_band_pair_key(blue_band,red_band)
+                band_pair = self.get_band_pair(band_pair_key)
+
+                (bandpair_header,bandpair_row) = band_pair.get_gamma_csv_header_and_row()
+            except KeyError:
+                bandpair_header = ["is_valid","pos_gamma_alpha",
+                  "pos_gamma_loc",
+                  "pos_gamma_beta",
+                  "neg_gamma_alpha",
+                  "neg_gamma_loc",
+                  "neg_gamma_beta",]
+                bandpair_row = [0,"","","","","",""]
+            header.extend(list(map(lambda x: "{}_{}".format(band_pair_key,x),bandpair_header)))
+            row.extend(bandpair_row)
+        return (header,row)
     
     def get_params_csv_header_and_row(self):
         """Generate galaxy's params csv information
