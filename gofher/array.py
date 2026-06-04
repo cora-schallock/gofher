@@ -1,7 +1,24 @@
 import numpy as np
 
-def create_distance_array(cx: float, cy: float ,shape: tuple) -> np.ndarray:
-    """creates an array where each element is euclidian distance from point (h,k)
+from gofher.utils import is_float, is_2d_array_shape
+
+def create_meshgrid(shape: tuple) -> tuple[np.ndarray, np.ndarray]:
+    """creates a standard meshgrid with given shape"""
+    #Validate input:
+    if not is_2d_array_shape(shape):
+        raise ValueError("shape must be tuple containing exactly 2 ints")
+    
+    #Create meshgrid
+    x = np.arange(shape[0])
+    y = np.arange(shape[1])
+    return np.meshgrid(x, y)
+
+
+def create_distance_array(cx: float, cy: float, shape: tuple) -> np.ndarray:
+    """Creates an array where each element is euclidian distance from point (h,k)
+
+    i.e. distance_array[10,50] is L2 euclidian distance from
+    (50,10) and point point (cx,cy)
     
     Args:
         cx: x-axis value of point to calulcate distance from
@@ -11,10 +28,54 @@ def create_distance_array(cx: float, cy: float ,shape: tuple) -> np.ndarray:
     Returns:
         distance matrix
     """
+    #Validate input:
+    if not is_float(cx):
+        raise ValueError("cx must be float/int or numpy equivalent")
     
-    # Create coordinate arrays
-    x = np.arange(shape[0])
-    y = np.arange(shape[1])
-    xx, yy = np.meshgrid(x, y)
+    if not is_float(cy):
+        raise ValueError("cy must be float/int or numpy equivalent")
     
+    if not is_2d_array_shape(shape):
+        raise ValueError("shape must be tuple containing exactly 2 ints")
+    
+    xx, yy = create_meshgrid(shape)
     return np.sqrt((xx - cx)**2 + (yy - cy)**2)
+
+def create_angle_array(cx: float, cy: float, theta: float, shape: tuple) -> np.ndarray:
+    """Creates an array of angles from line with slope theta through (cx,cy)
+
+    Each entry contains the angle measured in radians between the line specified
+    and the index taken as position in cartesian space.
+
+    i.e. angle_array[0,10] is angle from point (10,0) and line with slope theta
+    passing through the point (cx,cy)
+    
+    Args:
+        cx: x coordinate of point that line passes through
+        cy: y coordinate of point line line passes through
+        theta: the ang. of line in rads. counter clockwise from positive x-axis
+        shape: the shape of the array (assumes 2D array)
+        
+    Returns:
+        angle array in radians
+    """
+    #Validate input:
+    if not is_float(cx):
+        raise ValueError("cx must be float/int or numpy equivalent")
+    
+    if not is_float(cy):
+        raise ValueError("cy must be float/int or numpy equivalent")
+    
+    if not is_float(theta):
+        raise ValueError("theta must be float/int or numpy equivalent")
+    
+    if not is_2d_array_shape(shape):
+        raise ValueError("shape must be tuple containing exactly 2 ints")
+    
+    #Create meshgrid of shape:
+    xx, yy = create_meshgrid(shape)
+
+    #Calculate angle between point with coordinate and line provided:
+    return np.arctan2(yy-cy, xx-cx) - theta
+
+print(type(create_meshgrid((10,20))[0]))
