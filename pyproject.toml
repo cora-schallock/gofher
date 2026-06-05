@@ -1,2 +1,5 @@
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["gofher"]
+
+[tool.pylint."MESSAGES CONTROL"]
+disable = "C0303"
