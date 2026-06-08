@@ -31,13 +31,29 @@ def test_create_distance_array():
         (49, 61, 0.0, (50), ValueError),    #Case 4: shape not 2D
     ]
 )
-def test_create_distance_array_exceptions(cx, cy, theta, shape, expected_exception):
+def test_create_angle_array_exceptions(cx, cy, theta, shape, expected_exception):
     with pytest.raises(expected_exception):
         create_angle_array(cx, cy, theta, shape)
 
 #TODO: write this:
-def test_create_distance_array():
-    pass
+def test_create_angle_array():
+    """Create an angle array where each angle is measured
+    counter clockwise from positive line specified by point
+    (cx,cy) at slope theta (with respect to positive x-axis)"""
+
+    angle_array = create_major_axis_angle_array(25, 25, np.pi/4, (50,50))
+
+    #angle_array[30,25] = pi/4
+    #angle_array[20,30] = -pi/2
+
+    residual = np.abs(angle_array[28,28])
+    assert residual < 0.01
+
+    diagonal_residual = np.abs(angle_array[30,25] - np.pi/4)
+    assert diagonal_residual < 0.01
+
+    orthogonal_residual = np.abs(angle_array[20,30] + np.pi/2)
+    assert orthogonal_residual < 0.01
 
 def test_major_axis_angle_array_horizontal_symmetry():
     """Test symmetry of major axis angle array across minor axis
