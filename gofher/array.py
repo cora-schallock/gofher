@@ -99,7 +99,7 @@ def create_major_axis_angle_array(cx: float, cy: float, theta: float, shape: tup
         shape: the shape of the array (assumes 2D array)
         
     Returns:
-        Angle from major axis
+        Angle from major axis in radians
     """
 
     # Take angle array and +pi/2 to all values for subsequent transformation:
@@ -108,6 +108,36 @@ def create_major_axis_angle_array(cx: float, cy: float, theta: float, shape: tup
     # Mod angle_array_offset with pi to get:
     #    major axis = pi/2
     #    minor axis = 0, +/-pi
+    # Then Take absolute value so both sides of y-axis are positive:
+    #    major axis = pi/2
+    #    minor axis = 0, pi
+    # Finally subtract pi/2:
+    #    major axis = 0
+    #    minor axis = +/-pi/2
+
+    return np.abs(np.mod(angle_array_offset,np.pi))-np.pi/2
+
+def create_minor_axis_angle_matrix(cx,cy,theta,shape):
+    """Creates an array of angles from minor axis of ellipse
+
+    Important: range of value is [-pi/2,pi/2]
+    
+    Args:
+        cx: x coordinate of center of ellipse
+        cy: y coordinate of center of ellipse
+        theta: the ang. major axis counter clockwise from positive x-axis
+        shape: the shape of the array (assumes 2D array)
+        
+    Returns:
+        Angle from minor axis in radians
+    """
+
+    # Take angle array:
+    angle_array_offset = create_angle_array(cx,cy,theta, shape)
+
+    # Mod angle_array_offset with pi to get:
+    #    major axis = +/-pi/2
+    #    minor axis = 0
     # Then Take absolute value so both sides of y-axis are positive:
     #    major axis = pi/2
     #    minor axis = 0, pi

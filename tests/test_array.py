@@ -1,9 +1,7 @@
 import pytest
 import numpy as np
 
-from gofher.array import create_distance_array, create_angle_array, create_major_axis_angle_array
-
-#TODO: test meshgrid code 
+from gofher.array import create_distance_array, create_angle_array, create_major_axis_angle_array, create_meshgrid
 
 @pytest.mark.parametrize(
     "cx, cy, shape, expected_exception",
@@ -18,10 +16,39 @@ def test_create_distance_array_exceptions(cx, cy, shape, expected_exception):
     with pytest.raises(expected_exception):
         create_distance_array(cx, cy, shape)
 
-#TODO: write this:
 def test_create_distance_array():
-    pass
+    """Create a distance array where each element is the distance
+    from the point (cx,cy)
+    
+    Tolerance:
+        residule < 0.01 rads
+    """
 
+    # Create distance array of shape (10,10) with a center of
+    #  cx = 4, cy = 5
+    distance_array = create_distance_array(4,5,(10,10))
+
+    # Distance_array[5,4] is (cx=4,cy=5) because of numpy
+    # indexing (i.e. [row,col]), therefore distance should be 0
+    center_residual = np.abs(distance_array[5,4])
+    assert center_residual < 0.01
+
+    # The distance between point (1,1) and (4,5) is 5
+    above_residual = distance_array[1,1] - 5
+    assert above_residual < 0.01
+
+    # The distance between point (8,8) and (4,5) is 5
+    below_residual = distance_array[8,8] - 5
+    assert below_residual < 0.01
+
+    # The distance from (1,9) and (4,5) is equal to 
+    # the distance from (7,1) and (4,5)
+    equal_distance_residual = distance_array[9,1] - distance_array[1,7]
+    assert equal_distance_residual < 0.01
+
+    # The minimum distance should be 0
+    assert np.min(distance_array) >= 0.0
+    
 @pytest.mark.parametrize(
     "cx, cy, theta, shape, expected_exception",
     [
@@ -35,23 +62,30 @@ def test_create_angle_array_exceptions(cx, cy, theta, shape, expected_exception)
     with pytest.raises(expected_exception):
         create_angle_array(cx, cy, theta, shape)
 
-#TODO: write this:
 def test_create_angle_array():
     """Create an angle array where each angle is measured
     counter clockwise from positive line specified by point
-    (cx,cy) at slope theta (with respect to positive x-axis)"""
+    (cx,cy) at slope theta (with respect to positive x-axis)
+    
+    Tolerance:
+        residule < 0.01 rads
+    """
 
+    # Create angle array for a line with pi/4 slope, that goes through (25,25)
     angle_array = create_major_axis_angle_array(25, 25, np.pi/4, (50,50))
 
-    #angle_array[30,25] = pi/4
-    #angle_array[20,30] = -pi/2
-
+    # (28,28) is on the same diagonal line specified by theta
+    # so value should be near 0 rads
     residual = np.abs(angle_array[28,28])
     assert residual < 0.01
 
+    # [30,25] is right above center point so since slope of
+    # line is pi/4, [30,25] should be near pi/4 rads
     diagonal_residual = np.abs(angle_array[30,25] - np.pi/4)
     assert diagonal_residual < 0.01
 
+    # [20,30] is orthogonal to the given line from (cx,cy)
+    #  so should be near pi/2 rads
     orthogonal_residual = np.abs(angle_array[20,30] + np.pi/2)
     assert orthogonal_residual < 0.01
 
