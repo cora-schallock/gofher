@@ -7,7 +7,7 @@ the creation of binary image masks GOFHER uses.
 
 import numpy as np
 
-from utils import is_float, is_2d_array_shape
+from utils import is_float_int, is_2d_array_shape, is_2d_float_int_array, is_2d_bool_array, is_2d_same_shape_arrays
 
 def create_meshgrid(shape: tuple) -> tuple[np.ndarray, np.ndarray]:
     """creates a standard meshgrid with given shape"""
@@ -36,10 +36,10 @@ def create_distance_array(cx: float, cy: float, shape: tuple) -> np.ndarray:
         distance matrix
     """
     # Validate input:
-    if not is_float(cx):
+    if not is_float_int(cx):
         raise ValueError("cx must be float/int or numpy equivalent")
     
-    if not is_float(cy):
+    if not is_float_int(cy):
         raise ValueError("cy must be float/int or numpy equivalent")
     
     if not is_2d_array_shape(shape):
@@ -71,13 +71,13 @@ def create_angle_array(cx: float, cy: float, theta: float, shape: tuple) -> np.n
         angle array in radians
     """
     # Validate input:
-    if not is_float(cx):
+    if not is_float_int(cx):
         raise ValueError("cx must be float/int or numpy equivalent")
     
-    if not is_float(cy):
+    if not is_float_int(cy):
         raise ValueError("cy must be float/int or numpy equivalent")
     
-    if not is_float(theta):
+    if not is_float_int(theta):
         raise ValueError("theta must be float/int or numpy equivalent")
     
     if not is_2d_array_shape(shape):
@@ -87,7 +87,8 @@ def create_angle_array(cx: float, cy: float, theta: float, shape: tuple) -> np.n
     xx, yy = create_meshgrid(shape)
     return np.arctan2(yy-cy, xx-cx) - theta
 
-def create_major_axis_angle_array(cx: float, cy: float, theta: float, shape: tuple):
+def create_major_axis_angle_array(cx: float, cy: float, 
+                                  theta: float, shape: tuple) -> np.ndarray:
     """Creates an array of angles from major axis of ellipse
 
     Important: range of value is [-pi/2,pi/2]
@@ -117,7 +118,8 @@ def create_major_axis_angle_array(cx: float, cy: float, theta: float, shape: tup
 
     return np.abs(np.mod(angle_array_offset,np.pi))-np.pi/2
 
-def create_minor_axis_angle_matrix(cx,cy,theta,shape):
+def create_minor_axis_angle_matrix(cx: float, cy: float, 
+                                  theta: float, shape: tuple) -> np.ndarray:
     """Creates an array of angles from minor axis of ellipse
 
     Important: range of value is [-pi/2,pi/2]
@@ -133,7 +135,7 @@ def create_minor_axis_angle_matrix(cx,cy,theta,shape):
     """
 
     # Take angle array:
-    angle_array_offset = create_angle_array(cx,cy,theta, shape)
+    angle_array_offset = create_angle_array(cx,cy,theta,shape)
 
     # Mod angle_array_offset with pi to get:
     #    major axis = +/-pi/2
@@ -146,3 +148,38 @@ def create_minor_axis_angle_matrix(cx,cy,theta,shape):
     #    minor axis = +/-pi/2
 
     return np.abs(np.mod(angle_array_offset,np.pi))-np.pi/2
+
+def normalize_array(array: np.ndarray, 
+                    normalize_mask: np.ndarray | None = None)-> np.ndarray:
+    """Normalize array so that all normalize_mask True values are between [0,1]
+    (i.e. max array[normalize_mask] -> 1.0 & min array[normalize_mask] -> 0.0),
+    and 0 elsewhere. 
+    
+    Note: If no normalize_mask is provided, normalizes all values
+    
+    Args:
+        array: array to be normalized
+        normalize_mask: boolean array specifying alements to be normalized
+        theta: the ang. major axis counter clockwise from positive x-axis
+        shape: the shape of the array (assumes 2D array)
+        
+    Returns:
+        Angle from minor axis in radians
+    """
+    if not is_2d_float_int_array(array):
+        raise ValueError("array must be 2D np.ndarray of int/floats")
+    
+    if normalize_mask is None:
+       normalize_mask = np.ones_like(array, dtype=bool)
+    
+    if not is_2d_bool_array(normalize_mask):
+        raise ValueError("array must be 2D np.ndarray of int/floats")
+    
+    if not is_2d_same_shape_arrays(array, normalize_mask): 
+        raise ValueError("array and normalize_mask must be same shape")
+    
+    normalized_array = np.zeros(array.shape)
+    the_max = np.max(array[normalize_mask])
+    the_min = np.min(array[normalize_mask])
+    normalized_array[normalize_mask] = (array[normalize_mask] - the_min) / (the_max - the_min)
+    return normalized_array

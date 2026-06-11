@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from gofher.array import create_distance_array, create_angle_array, create_major_axis_angle_array, create_meshgrid
+from gofher.array import create_distance_array, create_angle_array, create_major_axis_angle_array, create_minor_axis_angle_array, normalize_array
 
 @pytest.mark.parametrize(
     "cx, cy, shape, expected_exception",
@@ -23,7 +23,6 @@ def test_create_distance_array():
     Tolerance:
         residule < 0.01 rads
     """
-
     # Create distance array of shape (10,10) with a center of
     #  cx = 4, cy = 5
     distance_array = create_distance_array(4,5,(10,10))
@@ -131,7 +130,6 @@ def test_major_axis_angle_array_vertical_symmetry():
     
     Code format note: asserts are 2 seperate lines for error message readability
     """
-
     # Middle of each entry treated as center, so x axis is shifted by 0.5 to ensure symmetry
     major_axis_array = create_major_axis_angle_array(49.5, 49.5, 0.0, (100,100))
 
@@ -148,3 +146,48 @@ def test_major_axis_angle_array_vertical_symmetry():
     # Checks symmetry by allowing avg. differenceto be at most +/-0.001*pi rads
     mean_residule = np.mean(np.abs(residual))
     assert mean_residule <= 0.001
+
+def test_normalize_array():
+    """Test normalize_array function
+
+    Tolerance:
+        max_residule < 0.01 rads
+        mean_residule < 0.001 rads
+    """
+    array = np.array([[0.0, 1.0, 2.0], 
+                      [4.0, 8.0, 16.0],
+                      [32.0, 64.0, 128.0]],dtype=np.float32)
+
+    normalize_all_expected = np.array([[0.0/128.0, 1.0/128.0, 2.0/128.0], 
+                              [4.0/128.0, 8.0/128.0, 16.0/128.0],
+                              [32.0/128.0, 64.0/128.0, 128.0/128.0]],dtype=np.float32)
+    
+    normalize_row_expected = np.array([[0.0, 0.0, 0.0], 
+                                       [4.0/16.0, 8.0/16.0, 16.0/16.0],
+                                       [0.0, 0.0, 0.0]],dtype=np.float32)
+    
+    # Normalize the whole array and calculate the residual
+    normalized_all_array = normalize_array(array)
+    all_residual = np.abs(normalized_all_array - normalize_all_expected)
+
+    # Checks max difference to be at most +/-0.01
+    max_all_residual = np.max(all_residual)
+    assert max_all_residual < 0.01
+
+    # Checks avg. difference to be at most +/-0.001
+    mean_all_residual = np.max(all_residual)
+    assert mean_all_residual < 0.001
+
+    # Normalize only the second row and calculate the residual
+    second_row_mask = np.broadcast_to([[False], [True], [False]], (3, 3))
+    normalize_row_array = normalize_array(array,second_row_mask)
+    row_residual = np.abs(normalized_all_array - normalize_all_expected)
+
+    # Checks max difference to be at most +/-0.01
+    max_row_residual = np.max(row_residual)
+    assert max_row_residual < 0.01
+
+    # Checks avg. difference to be at most +/-0.001
+    mean_row_residual = np.max(row_residual)
+    assert mean_row_residual < 0.001
+    

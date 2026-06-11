@@ -6,7 +6,7 @@
 
 import numpy as np
 
-def is_float(value):
+def is_float_int(value) -> bool:
     """Checks if the value is a float/int or numpy equivalent"""
     # Verify is python float or int:
     if isinstance(value, (float,int)):
@@ -18,9 +18,7 @@ def is_float(value):
     
     return False
     
-    
-    
-def is_2d_array_shape(value):
+def is_2d_array_shape(value) -> bool:
     """Checks if the value is a valid 2D array shape"""
     # Verify is 2 element tuple. Note: 1st to avoid IndexError:
     if not isinstance(value, tuple) or len(value) != 2: 
@@ -35,3 +33,36 @@ def is_2d_array_shape(value):
         return False
     
     return True
+
+def is_2d_array(value) -> bool:
+    """Checks if value is 2D np.ndarray"""
+    return isinstance(value,np.ndarray) and value.ndim == 2
+
+def is_2d_float_int_array(value) -> bool:
+    """Checks if value is 2D np.ndarray where all values are floats/ints"""
+    # Verify value is 2d np.ndarray: 
+    if not is_2d_array(value):
+        return False
+
+    # Verify value is np.ndarray of int/floats:
+    is_float_array = np.issubdtype(value.dtype, np.floating)
+    is_int_array = np.issubdtype(value.dtype, np.integer)
+    return is_float_array or is_int_array
+
+def is_2d_bool_array(value) -> bool:
+    """Checks if value is 2D np.ndarray where all values are bools"""
+    # Verify value is 2d np.ndarray: 
+    if not is_2d_array(value):
+        return False
+    
+    # Verify value is np.ndarray of bools:
+    return value.dtype == bool
+
+def is_2d_same_shape_arrays(value1, value2) -> bool:
+    """Checks if value1, value2 2D are np.ndarray of same shape"""
+    # Verify value1 & value2 are 2d np.ndarray: 
+    if not is_2d_array(value1) or not is_2d_array(value2):
+        return False
+
+    # Verify value is 2 dimensional array:
+    return value1.shape == value2.shape
