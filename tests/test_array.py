@@ -61,10 +61,22 @@ def test_create_angle_array_exceptions(cx, cy, theta, shape, expected_exception)
     with pytest.raises(expected_exception):
         create_angle_array(cx, cy, theta, shape)
 
+
 def test_create_angle_array():
     """Create an angle array where each angle is measured
     counter clockwise from positive line specified by point
     (cx,cy) at slope theta (with respect to positive x-axis)
+    
+    Tolerance:
+        residule < 0.01 rads
+    """
+    pass
+
+def test_create_major_axis_angle_array_exceptions():
+    pass
+
+def test_create_major_axis_angle_array():
+    """Creates an array of angles from major axis of ellipse
     
     Tolerance:
         residule < 0.01 rads
@@ -134,7 +146,7 @@ def test_major_axis_angle_array_vertical_symmetry():
     major_axis_array = create_major_axis_angle_array(49.5, 49.5, 0.0, (100,100))
 
     top_side = np.abs(major_axis_array[0:50,:])
-    bottom_side = np.abs(major_axis_array[0:50,:])
+    bottom_side = np.abs(major_axis_array[50:100,:])
 
     # Across y-axis right side reflected both vertically & horizontally is left
     residual = top_side - bottom_side
@@ -146,6 +158,48 @@ def test_major_axis_angle_array_vertical_symmetry():
     # Checks symmetry by allowing avg. differenceto be at most +/-0.001*pi rads
     mean_residule = np.mean(np.abs(residual))
     assert mean_residule <= 0.001
+
+def test_create_mior_axis_angle_array_exceptions():
+    pass
+
+def test_create_minor_axis_angle_array():
+    pass
+
+def test_create_minor_axis_angle_array_horizontal_symmetry():
+    """Test symmetry of minor axis angle array across major axis
+
+    Tolerance:
+        max_residule < 0.01 rads
+        mean_residule < 0.001 rads
+    
+    
+    For this case we are using minor axis is alligned with positive x-
+    so the major axis is alligned with the y-axis.Hence horizontal_symmetry 
+    (i.e. across y axis) is really in reference to across major axis.
+    
+    Code format note: asserts are 2 seperate lines for error message readability
+    """
+    # Middle of each entry treated as center, so x axis is shifted by 0.5 to ensure symmetry:
+    minor_axis = create_minor_axis_angle_array(49.5, 49.5, 0.0, (100,100))
+
+    left_side = minor_axis[:,0:50]
+    right_side = minor_axis[:,50:100]
+
+    # Right side is flipped vertically then horizontally
+    residual = left_side - np.flip(np.flip(right_side,axis=0), axis=1)
+
+    # Checks symmetry by allowing max residual to be at most +/-0.01*pi rads
+    max_residule = np.max(np.abs(residual)) 
+    assert max_residule < 0.01
+
+    # Checks symmetry by allowing avg. differenceto be at most +/-0.001*pi rads
+    mean_residule = np.mean(np.abs(residual))
+    assert mean_residule <= 0.001
+   
+
+def test_create_minor_axis_angle_array_vertical_symmetry():
+    pass
+
 
 def test_normalize_array():
     """Test normalize_array function

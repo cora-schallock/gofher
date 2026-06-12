@@ -89,9 +89,14 @@ def create_angle_array(cx: float, cy: float, theta: float, shape: tuple) -> np.n
 
 def create_major_axis_angle_array(cx: float, cy: float, 
                                   theta: float, shape: tuple) -> np.ndarray:
-    """Creates an array of angles from major axis of ellipse
+    """Creates an array of angles in radians from major axis of ellipse
 
-    Important: range of value is [-pi/2,pi/2]
+    Each element is closest angle to major axis, and sign indicates direction.
+
+    Important: 
+        range of value is [-pi/2,pi/2]
+        positive elements are counter clockwise from closest point on minor axis
+        negative elements are clockwise from closest point on minor axis
     
     Args:
         cx: x coordinate of center of ellipse
@@ -118,11 +123,17 @@ def create_major_axis_angle_array(cx: float, cy: float,
 
     return np.abs(np.mod(angle_array_offset,np.pi))-np.pi/2
 
-def create_minor_axis_angle_matrix(cx: float, cy: float, 
+def create_minor_axis_angle_array(cx: float, cy: float, 
                                   theta: float, shape: tuple) -> np.ndarray:
-    """Creates an array of angles from minor axis of ellipse
+    """Creates an array of angles in radians from minor axis of ellipse.
 
-    Important: range of value is [-pi/2,pi/2]
+    Each element is closest angle to minor axis, and sign indicates direction.
+
+    Important: 
+        theta is meausring *MAJOR* axis, not minor axis
+        range of value is [-pi/2,pi/2]
+        positive elements are counter clockwise from closest point on minor axis
+        negative elements are clockwise from closest point on minor axis
     
     Args:
         cx: x coordinate of center of ellipse
@@ -166,6 +177,7 @@ def normalize_array(array: np.ndarray,
     Returns:
         Angle from minor axis in radians
     """
+
     if not is_2d_float_int_array(array):
         raise ValueError("array must be 2D np.ndarray of int/floats")
     
@@ -183,3 +195,17 @@ def normalize_array(array: np.ndarray,
     the_min = np.min(array[normalize_mask])
     normalized_array[normalize_mask] = (array[normalize_mask] - the_min) / (the_max - the_min)
     return normalized_array
+
+#TODO: clean this up
+major_axis_array = create_major_axis_angle_array(49.5, 49.5, 0.0, (100,100))
+import matplotlib.pyplot as plt
+plt.imshow(major_axis_array,origin='lower')
+plt.show()
+minor_axis = create_minor_axis_angle_array(49.5, 49.5, 0.0, (100,100))
+import matplotlib.pyplot as plt
+plt.imshow(minor_axis,origin='lower')
+#plt.show()
+#flip vertically then flip horizontally
+minor_axis[:,50:100] = np.flip(np.flip(minor_axis[:,50:100],axis=0),axis=1)
+plt.imshow(minor_axis[:,0:50]-minor_axis[:,50:100],origin='lower')
+#plt.show()

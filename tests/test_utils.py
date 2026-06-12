@@ -35,9 +35,9 @@ def test_is_2d_array(value, expected):
     assert is_2d_array(value) == expected
 
 @pytest.mark.parametrize("value, expected", [
-    (np.ndarray([[1.0,2.0],[3.0,4.0]]), True),
-    (np.ndarray([[1,2],[3,4]]), True),
-    (np.ndarray([1,2]), False),
+    (np.array([[1.0,2.0],[3.0,4.0]]), True),
+    (np.array([[1,2],[3,4]]), True),
+    (np.array([1,2]), False),
     (np.float32(3), False),
     (np.int32(2.0), False),
     ([["1",1],["",False]], False),
@@ -47,8 +47,8 @@ def test_is_2d_float_int_array(value, expected):
     assert is_2d_float_int_array(value) == expected
 
 @pytest.mark.parametrize("value, expected", [
-    (np.ndarray([[True,False],[True,True]]), True),
-    (np.ndarray([True,True]), False),
+    (np.array([[True,False],[True,True]]), True),
+    (np.array([True,True]), False),
     (True, False),
     (1, False),
     ([["1",1],["",False]], False)
@@ -57,9 +57,9 @@ def test_is_2d_bool_array(value, expected):
     assert is_2d_bool_array(value) == expected
 
 @pytest.mark.parametrize("value1, value2, expected", [
-    (np.ndarray(np.zeros((2,2)),np.ones((2,2))), True),
-    (np.ndarray(np.zeros((2,1)),np.ones((2,1))), True),
-    (np.ndarray(np.zeros((2,)),np.ones((2,))), False),
+    (np.zeros((2,2)),np.ones((2,2)), True),
+    (np.zeros((2,1)),np.ones((2,1)), True),
+    (np.zeros((2,)),np.ones((2,)), False),
     ([[0,0]],np.ones((2,)), False)
 ])
 def test_is_2d_same_shape_arrays(value1, value2, expected):
