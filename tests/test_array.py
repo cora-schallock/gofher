@@ -62,6 +62,7 @@ def test_create_angle_array_exceptions(cx, cy, theta, shape, expected_exception)
         create_angle_array(cx, cy, theta, shape)
 
 
+#TODO: fix this
 def test_create_angle_array():
     """Create an angle array where each angle is measured
     counter clockwise from positive line specified by point
@@ -72,6 +73,7 @@ def test_create_angle_array():
     """
     pass
 
+#TODO: fix this
 def test_create_major_axis_angle_array_exceptions():
     pass
 
@@ -159,23 +161,25 @@ def test_major_axis_angle_array_vertical_symmetry():
     mean_residule = np.mean(np.abs(residual))
     assert mean_residule <= 0.001
 
+#TODO: fix this
 def test_create_mior_axis_angle_array_exceptions():
     pass
 
+#TODO: fix this
 def test_create_minor_axis_angle_array():
     pass
 
 def test_create_minor_axis_angle_array_horizontal_symmetry():
-    """Test symmetry of minor axis angle array across major axis
+    """Test symmetry of minor axis angle array across minor axis
 
     Tolerance:
         max_residule < 0.01 rads
         mean_residule < 0.001 rads
     
-    
-    For this case we are using minor axis is alligned with positive x-
-    so the major axis is alligned with the y-axis.Hence horizontal_symmetry 
-    (i.e. across y axis) is really in reference to across major axis.
+    For this case we are using major axis is alligned with positive 
+    x-axis so the minor axis is alligned with the positive y-axis.
+    Hence horizontal_symmetry (i.e. across y-axis) is really in 
+    reference to across mior axis.
     
     Code format note: asserts are 2 seperate lines for error message readability
     """
@@ -198,8 +202,49 @@ def test_create_minor_axis_angle_array_horizontal_symmetry():
    
 
 def test_create_minor_axis_angle_array_vertical_symmetry():
-    pass
+    """Test symmetry of minor axis angle array across major axis
 
+    Tolerance:
+        max_residule < 0.01 rads
+        mean_residule < 0.001 rads
+    
+    For this case we are using major axis is alligned with positive 
+    x-aaxis so the minor axis is alligned with the positive y-axis.
+    Hence vertical symmetry (i.e. across x-axis) is really in 
+    reference to across major axis.
+    
+    Code format note: asserts are 2 seperate lines for error message readability
+    """
+    # Middle of each entry treated as center, so x axis is shifted by 0.5 to ensure symmetry:
+    minor_axis = create_minor_axis_angle_array(49.5, 49.5, 0.0, (100,100))
+
+    left_side = minor_axis[0:50,:]
+    right_side = minor_axis[50:100,:]
+
+    # Right side is flipped vertically then horizontally
+    residual = left_side - np.flip(np.flip(right_side,axis=0), axis=1)
+
+    # Checks symmetry by allowing max residual to be at most +/-0.01*pi rads
+    max_residule = np.max(np.abs(residual)) 
+    assert max_residule < 0.01
+
+    # Checks symmetry by allowing avg. differenceto be at most +/-0.001*pi rads
+    mean_residule = np.mean(np.abs(residual))
+    assert mean_residule <= 0.001
+
+#TODO: fix this
+@pytest.mark.parametrize(
+    "array, normalize_mask, expected_exception",
+    [
+        ([], 10, np.pi * 0.25, (100,100), ValueError),    #Case 1: cx not floatable
+        (27, "a", 0.0, (50,50), ValueError),    #Case 2: cy not floatable
+        (35, 47, "0.0", (75,75), ValueError),    #Case 3: theta not float
+        (49, 61, 0.0, (50), ValueError),    #Case 4: shape not 2D
+    ]
+)
+def test_normalize_array_exceptions(array, normalize_mask, expected_exception):
+    with pytest.raises(expected_exception):
+        normalize_array(array, normalize_mask)
 
 def test_normalize_array():
     """Test normalize_array function
@@ -207,6 +252,11 @@ def test_normalize_array():
     Tolerance:
         max_residule < 0.01 rads
         mean_residule < 0.001 rads
+
+    3 cases:
+        1. normalize all entries
+        2. normalize only entries in a signle
+        3. normalize only a single value (i.e. min ~= max)
     """
     array = np.array([[0.0, 1.0, 2.0], 
                       [4.0, 8.0, 16.0],
@@ -220,9 +270,13 @@ def test_normalize_array():
                                        [4.0/16.0, 8.0/16.0, 16.0/16.0],
                                        [0.0, 0.0, 0.0]],dtype=np.float32)
     
-    # Normalize the whole array and calculate the residual
+    normalize_single_expected = np.array([[0.0, 0.0, 0.0], 
+                                       [0.0, 0.0, 0.0],
+                                       [0.0, 0.0, 1.0]],dtype=np.float32)
+    
+    # Case 1 - Normalize the whole array and calculate the residual
     normalized_all_array = normalize_array(array)
-    all_residual = np.abs(normalized_all_array - normalize_all_expected)
+    all_residual = np.abs(normalized_all_array-normalize_all_expected)
 
     # Checks max difference to be at most +/-0.01
     max_all_residual = np.max(all_residual)
@@ -232,10 +286,10 @@ def test_normalize_array():
     mean_all_residual = np.max(all_residual)
     assert mean_all_residual < 0.001
 
-    # Normalize only the second row and calculate the residual
+    # Case 2 - Normalize only the second row and calculate the residual
     second_row_mask = np.broadcast_to([[False], [True], [False]], (3, 3))
     normalize_row_array = normalize_array(array,second_row_mask)
-    row_residual = np.abs(normalized_all_array - normalize_all_expected)
+    row_residual = np.abs(normalize_row_array-normalize_row_expected)
 
     # Checks max difference to be at most +/-0.01
     max_row_residual = np.max(row_residual)
@@ -244,4 +298,18 @@ def test_normalize_array():
     # Checks avg. difference to be at most +/-0.001
     mean_row_residual = np.max(row_residual)
     assert mean_row_residual < 0.001
+
+    # Case 3 - Normalize a single value (this test case where min ~= max)
+    single_value_mask = np.zeros((3,3), dtype=bool)
+    single_value_mask[2][2] = True
+    normalize_single_array = normalize_array(array,single_value_mask)
+    single_residual = np.abs(normalize_single_array-normalize_single_expected)
+
+    # Checks max difference to be at most +/-0.01
+    max_single_residual = np.max(single_residual)
+    assert max_single_residual < 0.01
+
+    # Checks avg. difference to be at most +/-0.001
+    mean_single_residual = np.max(single_residual)
+    assert mean_single_residual < 0.001
     

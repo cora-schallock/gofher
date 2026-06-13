@@ -66,3 +66,12 @@ def is_2d_same_shape_arrays(value1, value2) -> bool:
 
     # Verify value is 2 dimensional array:
     return value1.shape == value2.shape
+
+def is_finite_array(value) -> bool:
+    """Checks if value is np.ndarray where all elements in value are finite"""
+    # Verify value is np.ndarray:
+    if not isinstance(value,np.ndarray):
+        return False
+    
+    # Verify value contains only finite values:
+    return bool(np.isfinite(value).all())
