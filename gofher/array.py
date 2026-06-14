@@ -208,6 +208,7 @@ def normalize_array(array: np.ndarray,
     return normalized_array
 
 #TODO: clean this up
+"""
 #major_axis_array = create_major_axis_angle_array(49.5, 49.5, 0.0, (100,100))
 # matplotlib.pyplot as plt
 #plt.imshow(major_axis_array,origin='lower')
@@ -222,3 +223,4 @@ bottom_side = minor_axis[50:100,:]
 top_side = np.flip(np.flip(top_side,axis=0),axis=1)
 plt.imshow(top_side-bottom_side,origin='lower')
 plt.show()
+"""
