@@ -7,7 +7,7 @@ the creation of binary image masks GOFHER uses.
 
 import numpy as np
 
-from gofher.utils import is_float_int, is_2d_array_shape, is_2d_float_int_array, is_2d_bool_array, is_2d_same_shape_arrays, is_finite_array
+from utils import is_float_int, is_2d_array_shape, is_2d_float_int_array, is_2d_bool_array, is_2d_same_shape_arrays, is_finite_array
 
 def create_meshgrid(shape: tuple) -> tuple[np.ndarray, np.ndarray]:
     """creates a standard meshgrid with given shape"""
@@ -207,6 +207,33 @@ def normalize_array(array: np.ndarray,
     normalized_array[normalize_mask] = (array[normalize_mask] - the_min) / (the_max - the_min)
     return normalized_array
 
+
+import matplotlib.pyplot as plt
+
+for i in [0,np.pi/2,np.pi/4]:
+    angle_array = create_angle_array(30,30,i,(60,60)) #potential issue where switch always happen at negative y-axis
+    plt.imshow(angle_array,origin='lower')
+    plt.show()
+#angle_array = create_angle_array(30,30,np.pi/4,(60,60))
+
+"""
+angle_array = create_angle_array(30,30,np.pi/4,(60,60))
+# angle at point (59,59) is pi/4
+print(angle_array[59,59])
+
+# angle at point (30,35) is pi/4
+print(angle_array[35,30])
+
+# angle at point (10,10) is pi
+print(angle_array[10,10])
+
+# angle at point (30,35) is 3*pi/4
+print(angle_array[5,30])
+"""
+
+
+plt.imshow(angle_array,origin='lower')
+plt.show()
 #TODO: clean this up
 """
 #major_axis_array = create_major_axis_angle_array(49.5, 49.5, 0.0, (100,100))

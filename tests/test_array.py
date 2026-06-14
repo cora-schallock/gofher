@@ -75,7 +75,7 @@ def test_create_angle_array():
     angle_array = create_angle_array(30,30,np.pi/4,(60,60))
 
     #TODO - fix the values below:
-    residual = abs(angle_array[25,30] - np.pi/4)
+    residual = abs(angle_array[30,25] - np.pi/4)
     assert residual < 0.01 
 
 
