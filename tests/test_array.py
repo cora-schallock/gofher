@@ -61,8 +61,6 @@ def test_create_angle_array_exceptions(cx, cy, theta, shape, expected_exception)
     with pytest.raises(expected_exception):
         create_angle_array(cx, cy, theta, shape)
 
-
-#TODO: fix this
 def test_create_angle_array():
     """Create an angle array where each angle is measured
     counter clockwise from positive line specified by point
@@ -71,14 +69,19 @@ def test_create_angle_array():
     Tolerance:
         residule < 0.01 rads
     """
-    
     angle_array = create_angle_array(30,30,np.pi/4,(60,60))
 
-    #TODO - fix the values below:
-    residual = abs(angle_array[30,25] - np.pi/4)
+    # angle between line through (30,30) with slope pi/4 and (30,35) is pi/4:
+    residual = abs(angle_array[35,30] - np.pi/4)
     assert residual < 0.01 
 
+    # angle between line through (30,30) with slope pi/4 and (40,30) is -pi/4:
+    residual = abs(angle_array[30,40] + np.pi/4)
+    assert residual < 0.01 
 
+    # angle between line through (30,30) with slope pi/4 and (15,15) is 0/2pi:
+    residual = abs(angle_array[15,15] % np.pi)
+    assert residual < 0.01 
 
 @pytest.mark.parametrize(
     "cx, cy, theta, shape, expected_exception",
@@ -167,7 +170,7 @@ def test_major_axis_angle_array_vertical_symmetry():
     bottom_side = np.abs(major_axis_array[50:100,:])
 
     # Across y-axis right side reflected both vertically & horizontally is left
-    residual = top_side - bottom_side
+    residual = top_side - np.flip(bottom_side,axis=0)
 
     # Checks symmetry by allowing max residual to be at most +/-0.01*pi rads
     max_residule = np.max(np.abs(residual))
@@ -177,13 +180,44 @@ def test_major_axis_angle_array_vertical_symmetry():
     mean_residule = np.mean(np.abs(residual))
     assert mean_residule <= 0.001
 
-#TODO: fix this
-def test_create_mior_axis_angle_array_exceptions():
-    pass
+@pytest.mark.parametrize(
+    "cx, cy, theta, shape, expected_exception",
+    [
+        ("a", 5, np.pi * 0.25, (100,100), ValueError),    #Case 1: cx not floatable
+        (27, {}, 0.0, (50,50), ValueError),    #Case 2: cy not floatable
+        (35, 47, [], (75,75), ValueError),    #Case 3: theta not float
+        (49, 61, 0.0, (50.25,40), ValueError),    #Case 4: shape not 2 ints
+    ]
+)
+def test_create_minor_axis_angle_array_exceptions(cx, cy, theta, shape, expected_exception):
+    with pytest.raises(expected_exception):
+        create_major_axis_angle_array(cx, cy, theta, shape)
 
-#TODO: fix this
 def test_create_minor_axis_angle_array():
-    pass
+    """Creates an array of angles from minor axis of ellipse
+    
+    Tolerance:
+        residule < 0.01 rads
+    """
+
+    # Create angle array for a ellipse with -pi/4 slope
+    # that goes through (25,25), hence minor axis at pi/4:
+    angle_array = create_minor_axis_angle_array(25, 25, -np.pi/4, (50,50))
+
+    # (28,28) is on the same diagonal line as minor axis
+    # so value should be near 0 rads:
+    residual = np.abs(angle_array[28,28])
+    assert residual < 0.01
+
+    # (25,30) is on y-axis, and minor axis is on diagonal line 
+    # with np.pi/4, so it should be np.pi/4:
+    diagonal_residual = np.abs(angle_array[30,25] - np.pi/4)
+    assert diagonal_residual < 0.01
+
+    # (30,20) is on major axis, counter clockwise from (25,25)
+    #  so should be -np.pi/2:
+    orthogonal_residual = np.abs(angle_array[20,30] + np.pi/2)
+    assert orthogonal_residual < 0.01
 
 def test_create_minor_axis_angle_array_horizontal_symmetry():
     """Test symmetry of minor axis angle array across minor axis
@@ -248,21 +282,18 @@ def test_create_minor_axis_angle_array_vertical_symmetry():
     mean_residule = np.mean(np.abs(residual))
     assert mean_residule <= 0.001
 
-#TODO: fix this
-"""
 @pytest.mark.parametrize(
     "array, normalize_mask, expected_exception",
     [
-        ([], 10, np.pi * 0.25, (100,100), ValueError),    #Case 1: cx not floatable
-        (27, "a", 0.0, (50,50), ValueError),    #Case 2: cy not floatable
-        (35, 47, "0.0", (75,75), ValueError),    #Case 3: theta not float
-        (49, 61, 0.0, (50), ValueError),    #Case 4: shape not 2D
+        (np.ones((2,2)), np.ones((2,2),np.float32), ValueError),
+        (np.ones((2,2)), np.ones((3,3),bool), ValueError),
+        (np.array([[0,np.nan], [0,np.inf]]), np.ones((2,2),bool), ValueError),
+        (np.array([[0,0.2], [1,"a"]]),np.ones((2,2),bool), ValueError),
     ]
 )
 def test_normalize_array_exceptions(array, normalize_mask, expected_exception):
     with pytest.raises(expected_exception):
         normalize_array(array, normalize_mask)
-"""
 
 def test_normalize_array():
     """Test normalize_array function
@@ -273,7 +304,7 @@ def test_normalize_array():
 
     3 cases:
         1. normalize all entries
-        2. normalize only entries in a signle
+        2. normalize only entries in a signle row
         3. normalize only a single value (i.e. min ~= max)
     """
     array = np.array([[0.0, 1.0, 2.0], 
@@ -285,7 +316,7 @@ def test_normalize_array():
                               [32.0/128.0, 64.0/128.0, 128.0/128.0]],dtype=np.float32)
     
     normalize_row_expected = np.array([[0.0, 0.0, 0.0], 
-                                       [4.0/16.0, 8.0/16.0, 16.0/16.0],
+                                       [0.0, (8.0-4.0)/(16.0-4.0), 1.0],
                                        [0.0, 0.0, 0.0]],dtype=np.float32)
     
     normalize_single_expected = np.array([[0.0, 0.0, 0.0], 

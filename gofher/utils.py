@@ -38,10 +38,10 @@ def is_2d_array(value) -> bool:
     """Checks if value is 2D np.ndarray"""
     return isinstance(value,np.ndarray) and value.ndim == 2
 
-def is_2d_float_int_array(value) -> bool:
+def is_float_int_array(value) -> bool:
     """Checks if value is 2D np.ndarray where all values are floats/ints"""
     # Verify value is 2d np.ndarray: 
-    if not is_2d_array(value):
+    if not isinstance(value,np.ndarray):
         return False
 
     # Verify value is np.ndarray of int/floats:

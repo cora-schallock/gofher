@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from gofher.utils import is_float_int, is_2d_array_shape, is_2d_float_int_array, is_2d_bool_array, is_2d_same_shape_arrays, is_2d_array, is_finite_array
+from gofher.utils import is_float_int, is_2d_array_shape, is_float_int_array, is_2d_bool_array, is_2d_same_shape_arrays, is_2d_array, is_finite_array
 
 @pytest.mark.parametrize("value, expected", [
     (1, True),
@@ -37,14 +37,14 @@ def test_is_2d_array(value, expected):
 @pytest.mark.parametrize("value, expected", [
     (np.array([[1.0,2.0],[3.0,4.0]]), True),
     (np.array([[1,2],[3,4]]), True),
-    (np.array([1,2]), False),
+    (np.array([1,2]), True),
     (np.float32(3), False),
     (np.int32(2.0), False),
     ([["1",1],["",False]], False),
     ("a", False)
 ])
-def test_is_2d_float_int_array(value, expected):
-    assert is_2d_float_int_array(value) == expected
+def test_is_float_int_array(value, expected):
+    assert is_float_int_array(value) == expected
 
 @pytest.mark.parametrize("value, expected", [
     (np.array([[True,False],[True,True]]), True),

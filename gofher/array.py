@@ -7,7 +7,7 @@ the creation of binary image masks GOFHER uses.
 
 import numpy as np
 
-from utils import is_float_int, is_2d_array_shape, is_2d_float_int_array, is_2d_bool_array, is_2d_same_shape_arrays, is_finite_array
+from utils import is_float_int, is_2d_array_shape, is_float_int_array, is_2d_bool_array, is_2d_same_shape_arrays, is_finite_array
 
 def create_meshgrid(shape: tuple) -> tuple[np.ndarray, np.ndarray]:
     """creates a standard meshgrid with given shape"""
@@ -53,7 +53,7 @@ def create_angle_array(cx: float, cy: float, theta: float, shape: tuple) -> np.n
     """Creates an array of angles from line with slope theta through (cx,cy)
 
     Each entry contains the angle measured in radians between the line specified
-    and the index taken as position in cartesian space. Angel used is smallest
+    and the index taken as position in cartesian space. Angle used is smallest
     absolute value angle (i.e. 1.5*pi -> -0.5*pi)
 
     i.e. angle_array[0,10] is angle from point (10,0) and line with slope theta
@@ -85,7 +85,10 @@ def create_angle_array(cx: float, cy: float, theta: float, shape: tuple) -> np.n
     
     # Calculate ang. between line through (cx,cy)  to all meshgrid elements:
     xx, yy = create_meshgrid(shape)
-    return np.arctan2(yy-cy, xx-cx) - theta
+    angles = np.arctan2(yy-cy, xx-cx) - theta
+
+    # Normalize angles so in range [-pi ,pi]
+    return (angles + np.pi) % (2 * np.pi) - np.pi
 
 def create_major_axis_angle_array(cx: float, cy: float, 
                                   theta: float, shape: tuple) -> np.ndarray:
@@ -188,11 +191,11 @@ def normalize_array(array: np.ndarray,
     if not is_2d_same_shape_arrays(array, normalize_mask): 
         raise ValueError("array and normalize_mask must be same shape")
     
+    if not is_float_int_array(array[normalize_mask]):
+        raise ValueError(f"normalized array must be np.ndarray of int/floats {array[normalize_mask]} {is_float_int_array(array[normalize_mask])}")
+    
     if not is_finite_array(array[normalize_mask]):
         raise ValueError("normalized array contains non-finite values")
-    
-    if not is_2d_float_int_array(array[normalize_mask]):
-        raise ValueError("normalized array must be 2D np.ndarray of int/floats")
     
     # Create normalization array:
     normalized_array = np.zeros(array.shape)
@@ -206,48 +209,3 @@ def normalize_array(array: np.ndarray,
 
     normalized_array[normalize_mask] = (array[normalize_mask] - the_min) / (the_max - the_min)
     return normalized_array
-
-
-import matplotlib.pyplot as plt
-
-for i in [0,np.pi/2,np.pi/4]:
-    angle_array = create_angle_array(30,30,i,(60,60)) #potential issue where switch always happen at negative y-axis
-    plt.imshow(angle_array,origin='lower')
-    plt.show()
-#angle_array = create_angle_array(30,30,np.pi/4,(60,60))
-
-"""
-angle_array = create_angle_array(30,30,np.pi/4,(60,60))
-# angle at point (59,59) is pi/4
-print(angle_array[59,59])
-
-# angle at point (30,35) is pi/4
-print(angle_array[35,30])
-
-# angle at point (10,10) is pi
-print(angle_array[10,10])
-
-# angle at point (30,35) is 3*pi/4
-print(angle_array[5,30])
-"""
-
-
-plt.imshow(angle_array,origin='lower')
-plt.show()
-#TODO: clean this up
-"""
-#major_axis_array = create_major_axis_angle_array(49.5, 49.5, 0.0, (100,100))
-# matplotlib.pyplot as plt
-#plt.imshow(major_axis_array,origin='lower')
-#plt.show()
-minor_axis = create_minor_axis_angle_array(49.5, 49.5, 0.0, (100,100))
-import matplotlib.pyplot as plt
-plt.imshow(minor_axis,origin='lower')
-plt.show()
-top_side = minor_axis[0:50,:]
-bottom_side = minor_axis[50:100,:]
-#flip vertically then flip horizontally
-top_side = np.flip(np.flip(top_side,axis=0),axis=1)
-plt.imshow(top_side-bottom_side,origin='lower')
-plt.show()
-"""
