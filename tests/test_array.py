@@ -1,7 +1,20 @@
+"""Test all functions in gofher/array.py
+
+The script is run using the commend: python -m pytest
+"""
+
+
+
 import pytest
 import numpy as np
 
-from gofher.array import create_distance_array, create_angle_array, create_major_axis_angle_array, create_minor_axis_angle_array, normalize_array
+from gofher.array import (
+    create_distance_array, 
+    create_angle_array, 
+    create_major_axis_angle_array, 
+    create_minor_axis_angle_array, 
+    normalize_array
+)
 
 @pytest.mark.parametrize(
     "cx, cy, shape, expected_exception",
@@ -13,6 +26,7 @@ from gofher.array import create_distance_array, create_angle_array, create_major
     ]
 )
 def test_create_distance_array_exceptions(cx, cy, shape, expected_exception):
+    """Tests exceptions expected from distance array"""
     with pytest.raises(expected_exception):
         create_distance_array(cx, cy, shape)
 
@@ -58,6 +72,7 @@ def test_create_distance_array():
     ]
 )
 def test_create_angle_array_exceptions(cx, cy, theta, shape, expected_exception):
+    """Test exceptions expected from angle array"""
     with pytest.raises(expected_exception):
         create_angle_array(cx, cy, theta, shape)
 
@@ -93,6 +108,7 @@ def test_create_angle_array():
     ]
 )
 def test_create_major_axis_angle_array_exceptions(cx, cy, theta, shape, expected_exception):
+    """Test exceptions expected from major axis angle array"""
     with pytest.raises(expected_exception):
         create_major_axis_angle_array(cx, cy, theta, shape)
 
@@ -190,6 +206,7 @@ def test_major_axis_angle_array_vertical_symmetry():
     ]
 )
 def test_create_minor_axis_angle_array_exceptions(cx, cy, theta, shape, expected_exception):
+    """Test exceptions expected from minor axis angle array"""
     with pytest.raises(expected_exception):
         create_major_axis_angle_array(cx, cy, theta, shape)
 
@@ -250,7 +267,6 @@ def test_create_minor_axis_angle_array_horizontal_symmetry():
     mean_residule = np.mean(np.abs(residual))
     assert mean_residule <= 0.001
    
-
 def test_create_minor_axis_angle_array_vertical_symmetry():
     """Test symmetry of minor axis angle array across major axis
 
@@ -292,6 +308,7 @@ def test_create_minor_axis_angle_array_vertical_symmetry():
     ]
 )
 def test_normalize_array_exceptions(array, normalize_mask, expected_exception):
+    """Test exceptions expected from normalize array"""
     with pytest.raises(expected_exception):
         normalize_array(array, normalize_mask)
 
@@ -361,4 +378,3 @@ def test_normalize_array():
     # Checks avg. difference to be at most +/-0.001
     mean_single_residual = np.max(single_residual)
     assert mean_single_residual < 0.001
-    

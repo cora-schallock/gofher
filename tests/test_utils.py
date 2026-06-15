@@ -1,7 +1,21 @@
+"""Test all functions in gofher/utils.py
+
+The script is run using the commend: python -m pytest
+"""
+
+
 import pytest
 import numpy as np
 
-from gofher.utils import is_float_int, is_2d_array_shape, is_float_int_array, is_2d_bool_array, is_2d_same_shape_arrays, is_2d_array, is_finite_array
+from gofher.utils import (
+    is_float_int, 
+    is_2d_array_shape, 
+    is_float_int_array, 
+    is_2d_bool_array, 
+    is_2d_same_shape_arrays, 
+    is_2d_array, 
+    is_finite_array
+)
 
 @pytest.mark.parametrize("value, expected", [
     (1, True),
@@ -13,6 +27,7 @@ from gofher.utils import is_float_int, is_2d_array_shape, is_float_int_array, is
     (np.int32(32.3), True)
 ])
 def test_is_float_int(value, expected):
+    """Test exceptions expected from is_float_int"""
     assert is_float_int(value) == expected
 
 @pytest.mark.parametrize("value, expected", [
@@ -23,6 +38,7 @@ def test_is_float_int(value, expected):
     ((100, 100, 50), False)
 ])
 def test_is_2d_array_shape(value, expected):
+    """Test exceptions expected from is_2d_array_shape"""
     assert is_2d_array_shape(value) == expected
 
 @pytest.mark.parametrize("value, expected", [
@@ -32,6 +48,7 @@ def test_is_2d_array_shape(value, expected):
     (0, False)
 ])
 def test_is_2d_array(value, expected):
+    """Test exceptions expected from is_2d_array"""
     assert is_2d_array(value) == expected
 
 @pytest.mark.parametrize("value, expected", [
@@ -44,6 +61,7 @@ def test_is_2d_array(value, expected):
     ("a", False)
 ])
 def test_is_float_int_array(value, expected):
+    """Test exceptions expected from is_float_int_array"""
     assert is_float_int_array(value) == expected
 
 @pytest.mark.parametrize("value, expected", [
@@ -54,6 +72,7 @@ def test_is_float_int_array(value, expected):
     ([["1",1],["",False]], False)
 ])
 def test_is_2d_bool_array(value, expected):
+    """Test exceptions expected from is_2d_bool_array"""
     assert is_2d_bool_array(value) == expected
 
 @pytest.mark.parametrize("value1, value2, expected", [
@@ -63,6 +82,7 @@ def test_is_2d_bool_array(value, expected):
     ([[0,0]],np.ones((2,)), False)
 ])
 def test_is_2d_same_shape_arrays(value1, value2, expected):
+    """Test exceptions expected from is_2d_same_shape_arrays"""
     assert is_2d_same_shape_arrays(value1, value2) == expected
 
 @pytest.mark.parametrize("value, expected", [
@@ -73,5 +93,5 @@ def test_is_2d_same_shape_arrays(value1, value2, expected):
     ([["1",1],["",False]], False)
 ])
 def test_is_finite_array(value, expected):
+    """Test exceptions expected from def test_is_finite_array"""
     assert is_finite_array(value) == expected
-

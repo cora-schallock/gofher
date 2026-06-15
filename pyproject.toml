@@ -3,3 +3,6 @@ pythonpath = ["gofher"]
 
 [tool.pylint."MESSAGES CONTROL"]
 disable = "C0303"
+
+[tool.pylint.main]
+init-hook = "import os, sys; sys.path.insert(0, os.path.abspath('gofher'))"

@@ -7,7 +7,14 @@ the creation of binary image masks GOFHER uses.
 
 import numpy as np
 
-from utils import is_float_int, is_2d_array_shape, is_float_int_array, is_2d_bool_array, is_2d_same_shape_arrays, is_finite_array
+from gofher.utils import (
+    is_float_int, 
+    is_2d_array_shape, 
+    is_float_int_array, 
+    is_2d_bool_array, 
+    is_2d_same_shape_arrays, 
+    is_finite_array
+)
 
 def create_meshgrid(shape: tuple) -> tuple[np.ndarray, np.ndarray]:
     """creates a standard meshgrid with given shape"""
@@ -19,7 +26,6 @@ def create_meshgrid(shape: tuple) -> tuple[np.ndarray, np.ndarray]:
     x = np.arange(shape[0])
     y = np.arange(shape[1])
     return np.meshgrid(x, y)
-
 
 def create_distance_array(cx: float, cy: float, shape: tuple) -> np.ndarray:
     """Creates an array where each element is euclidian distance from point (h,k)
@@ -182,7 +188,7 @@ def normalize_array(array: np.ndarray,
     """
     # If no normalize_mask is provided, normalize all values:
     if normalize_mask is None:
-       normalize_mask = np.ones_like(array, dtype=bool)
+        normalize_mask = np.ones_like(array, dtype=bool)
     
     # Validate input:
     if not is_2d_bool_array(normalize_mask):
@@ -192,10 +198,10 @@ def normalize_array(array: np.ndarray,
         raise ValueError("array and normalize_mask must be same shape")
     
     if not is_float_int_array(array[normalize_mask]):
-        raise ValueError(f"normalized array must be np.ndarray of int/floats {array[normalize_mask]} {is_float_int_array(array[normalize_mask])}")
+        raise ValueError("normalized array must be np.ndarray of int/floats")
     
     if not is_finite_array(array[normalize_mask]):
-        raise ValueError("normalized array contains non-finite values")
+        raise ValueError("normalized array must be finite values (no NaN/inf)")
     
     # Create normalization array:
     normalized_array = np.zeros(array.shape)

@@ -1,0 +1,4 @@
+{
+    "pylint.importStrategy": "fromEnvironment",
+    "python.analysis.extraPaths": ["./gofher"]
+}
