@@ -7,7 +7,7 @@ the creation of binary image masks GOFHER uses.
 
 import numpy as np
 
-from gofher.utils import (
+from utils import (
     is_float_int, 
     is_2d_array_shape, 
     is_float_int_array, 
@@ -215,3 +215,7 @@ def normalize_array(array: np.ndarray,
 
     normalized_array[normalize_mask] = (array[normalize_mask] - the_min) / (the_max - the_min)
     return normalized_array
+
+xx, yy = create_meshgrid((5,5))
+print(xx-5)
+print(yy)

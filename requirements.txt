@@ -2,3 +2,4 @@ numpy==2.4.6
 pytest>=9.0.3
 pylint>=4.0.5
 matplotlib>=3.10.9
+sep>=1.4.1
