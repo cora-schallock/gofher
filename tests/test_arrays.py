@@ -8,7 +8,7 @@ The script is run using the commend: python -m pytest
 import pytest
 import numpy as np
 
-from gofher.array import (
+from arrays import (
     create_distance_array, 
     create_angle_array, 
     create_major_axis_angle_array, 
