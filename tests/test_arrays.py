@@ -4,7 +4,6 @@ The script is run using the commend: python -m pytest
 """
 
 
-
 import pytest
 import numpy as np
 

@@ -215,7 +215,3 @@ def normalize_array(array: np.ndarray,
 
     normalized_array[normalize_mask] = (array[normalize_mask] - the_min) / (the_max - the_min)
     return normalized_array
-
-xx, yy = create_meshgrid((5,5))
-print(xx-5)
-print(yy)

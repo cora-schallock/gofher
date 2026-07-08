@@ -35,10 +35,10 @@ def create_ellipse_mask(h: float, k: float,
     if not is_float_int(k):
         raise ValueError("k must be float/int or numpy equivalent")
     
-    if not is_float_int(a) and a > 0:
+    if not is_float_int(a) or a <= 0:
         raise ValueError("a must be > 0 and float/int or numpy equivalent")
     
-    if not is_float_int(b) and b > 0:
+    if not is_float_int(b) or b <= 0:
         raise ValueError("b must be > 0 and float/int or numpy equivalent")
     
     if not is_float_int(theta):
@@ -47,7 +47,7 @@ def create_ellipse_mask(h: float, k: float,
     if not is_2d_array_shape(shape):
         raise ValueError("shape must be tuple containing exactly 2 ints")
     
-    if not is_float_int(r) and r > 0:
+    if not is_float_int(r) or r <= 0:
         raise ValueError("r must be > 0 and float/int or numpy equivalent")
     
     # Calaulte distance from point (h,k) to all meshgrid elements:
@@ -93,7 +93,7 @@ def create_near_major_axis_mask(sweep: float, h: float, k: float,
     if not is_float_int(sweep):
         raise ValueError("sweep must be and float/int or numpy equivalent")
     
-    if not sweep >= 0 and sweep <= np.pi/2:
+    if not sweep >= 0 or not sweep <= np.pi/2:
         raise ValueError("sweep must be between 0 and pi/2")
     
     if not is_float_int(h):
@@ -174,6 +174,8 @@ def create_near_minor_axis_mask(sweep: float, h: float, k: float,
     near_minor_axis_array[np.abs(angle_from_min_axis_array) <= sweep] = True
     return near_minor_axis_array
 
+"""
+#TODO: show this follows an inverse tangent distro
 import matplotlib.pyplot as plt
 
 xs = []
@@ -192,3 +194,4 @@ for i in range(0,int(b/2)+1):
     ys.append(i)
 plt.scatter(xs,ys)
 plt.show()
+"""
