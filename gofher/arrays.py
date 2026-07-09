@@ -16,7 +16,7 @@ from utils import (
     is_finite_array
 )
 
-def create_meshgrid(shape: tuple) -> tuple[np.ndarray, np.ndarray]:
+def create_meshgrid(shape: tuple[int]) -> tuple[np.ndarray, np.ndarray]:
     """creates a standard meshgrid with given shape"""
     # Validate input:
     if not is_2d_array_shape(shape):
@@ -27,7 +27,8 @@ def create_meshgrid(shape: tuple) -> tuple[np.ndarray, np.ndarray]:
     y = np.arange(shape[1])
     return np.meshgrid(x, y)
 
-def create_distance_array(cx: float, cy: float, shape: tuple) -> np.ndarray:
+def create_distance_array(cx: float, cy: float, 
+                          shape: tuple[int]) -> np.ndarray:
     """Creates an array where each element is euclidian distance from point (h,k)
 
     i.e. distance_array[10,50] is L2 euclidian distance from
@@ -55,7 +56,8 @@ def create_distance_array(cx: float, cy: float, shape: tuple) -> np.ndarray:
     xx, yy = create_meshgrid(shape)
     return np.sqrt((xx - cx)**2 + (yy - cy)**2)
 
-def create_angle_array(cx: float, cy: float, theta: float, shape: tuple) -> np.ndarray:
+def create_angle_array(cx: float, cy: float, theta: float, 
+                       shape: tuple[int]) -> np.ndarray:
     """Creates an array of angles from line with slope theta through (cx,cy)
 
     Each entry contains the angle measured in radians between the line specified
@@ -69,7 +71,7 @@ def create_angle_array(cx: float, cy: float, theta: float, shape: tuple) -> np.n
     
     Args:
         cx: x coordinate of point that line passes through
-        cy: y coordinate of point line line passes through
+        cy: y coordinate of point that line passes through
         theta: the ang. of line in rads. counter clockwise from positive x-axis
         shape: the shape of the array (assumes 2D array)
         
@@ -96,8 +98,8 @@ def create_angle_array(cx: float, cy: float, theta: float, shape: tuple) -> np.n
     # Normalize angles so in range [-pi ,pi]
     return (angles + np.pi) % (2 * np.pi) - np.pi
 
-def create_major_axis_angle_array(cx: float, cy: float, 
-                                  theta: float, shape: tuple) -> np.ndarray:
+def create_major_axis_angle_array(cx: float, cy: float, theta: float, 
+                                  shape: tuple[int]) -> np.ndarray:
     """Creates an array of angles in radians from major axis of ellipse
 
     Each element is closest angle to major axis, and sign indicates direction.
@@ -132,8 +134,8 @@ def create_major_axis_angle_array(cx: float, cy: float,
 
     return np.abs(np.mod(angle_array_offset,np.pi))-np.pi/2
 
-def create_minor_axis_angle_array(cx: float, cy: float, 
-                                  theta: float, shape: tuple) -> np.ndarray:
+def create_minor_axis_angle_array(cx: float, cy: float, theta: float, 
+                                  shape: tuple[int]) -> np.ndarray:
     """Creates an array of angles in radians from minor axis of ellipse.
 
     Each element is closest angle to minor axis, and sign indicates direction.

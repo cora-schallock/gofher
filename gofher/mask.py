@@ -4,26 +4,27 @@ This module provides a collection of 2D binary masks
 that can be used on the data.
 """
 
-from arrays import create_meshgrid, create_major_axis_angle_array, create_minor_axis_angle_array
+from arrays import create_meshgrid, create_major_axis_angle_array, create_minor_axis_angle_array, create_angle_array
 from utils import is_float_int, is_2d_array_shape
 
 import numpy as np
 
 def create_ellipse_mask(h: float, k: float, 
                         a: float, b: float, 
-                        theta: float, shape: tuple,
+                        theta: float, shape: tuple[int],
                         r: float = 1.0) -> np.ndarray:
     """Create a binary ellipse mask of a titled ellipse
     
     Each pixel is 1 if center of pixel is in ellipse or on border, 0 otherwise.
     
-    h: x coordinate of center of ellipse
-    k: y coordinate of center of ellipse
-    a: semi-major axis length
-    b: semi-major minor axis length
-    theta: ang. in radians of major axis counter clockwise from positive x-axis
-    shape: the shape of the array (assumes 2D array)
-    r: scaling factor of ellipse (scales a and b by r)
+    Args:
+        h: x coordinate of center of ellipse
+        k: y coordinate of center of ellipse
+        a: semi-major axis length
+        b: semi-major minor axis length
+        theta: ang. in radians of major axis counter clockwise from positive x-axis
+        shape: the shape of the array (assumes 2D array)
+        r: scaling factor of ellipse (scales a and b by r)
 
     Returns:
         ellipse mask
@@ -63,7 +64,7 @@ def create_ellipse_mask(h: float, k: float,
     return ellipse_equation <= 1
 
 def create_near_major_axis_mask(sweep: float, h: float, k: float, 
-                                theta: float, shape: tuple) -> np.ndarray:
+                                theta: float, shape: tuple[int]) -> np.ndarray:
     """Creates a binary mask indicating all points near ellipse major axis
 
     Given an ellipse with center (h,k) and a major axis angle theta,
@@ -119,7 +120,7 @@ def create_near_major_axis_mask(sweep: float, h: float, k: float,
     return near_major_axis_array
 
 def create_near_minor_axis_mask(sweep: float, h: float, k: float, 
-                                theta: float, shape: tuple) -> np.ndarray:
+                                theta: float, shape: tuple[int]) -> np.ndarray:
     """Creates a binary mask indicating all points near ellipse minor axis
 
     Given an ellipse with center (cx,cy) and a major axis angle theta,
@@ -173,6 +174,61 @@ def create_near_minor_axis_mask(sweep: float, h: float, k: float,
     # Set all points that are within sweep radians of major axis to true:
     near_minor_axis_array[np.abs(angle_from_min_axis_array) <= sweep] = True
     return near_minor_axis_array
+
+def create_bisection_mask(h: float, k: float, theta: float, 
+                          shape: tuple[int]) -> tuple[np.ndarray]:
+    """Creates bisection masks from the major axis of ellipse on a plane
+
+    Bisects the angle_array so that all pixels whose angle is non-negative
+    are in the pos_mask, and all pixels whose angle is negative are in 
+    negative_mask. See create_angle_array for more details.
+
+    Essentially, theta is offset of new x'-axis measured counter clockwise
+    in radians from the standard positive x-axis. Then each entry is smallest
+    angle from this positive x'axis (i.e. in range [-pi,pi]) and then the 
+    positive mask contains all entries in which this angle is >= 0 and
+    negative mask contains all other entries.
+    
+    Args:
+        h: x coordinate of center of ellipse
+        k: y coordinate of center of ellipse
+        theta: ang. in radians of major axis counter clockwise from positive x-axis
+        shape: the shape of the array (assumes 2D array)
+
+    Returns:
+        (pos_mask, neg_mask) boolean masks
+    """
+    if not is_float_int(h):
+        raise ValueError("h must be float/int or numpy equivalent")
+    
+    if not is_float_int(k):
+        raise ValueError("k must be float/int or numpy equivalent")
+    
+    if not is_float_int(theta):
+        raise ValueError("theta must be float/int or numpy equivalent")
+    
+    if not is_2d_array_shape(shape):
+        raise ValueError("shape must be tuple containing exactly 2 ints & > 0")
+
+    angle_array = create_angle_array(h, k, theta, shape)
+
+    #plt.imshow(angle_array,origin="lower")
+    #plt.show()
+
+    pos_mask = (angle_array >= 0)
+    neg_mask = (angle_array < 0)
+    
+    return (pos_mask, neg_mask)
+
+
+#import matplotlib.pyplot as plt
+
+#pos,neg = create_bisection_mask(50,50,np.pi,(100,100))
+#plt.imshow(pos,origin="lower")
+#plt.show()
+#plt.imshow(neg,origin="lower")
+#plt.show()
+
 
 """
 #TODO: show this follows an inverse tangent distro
