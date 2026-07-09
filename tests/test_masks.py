@@ -14,6 +14,8 @@ from mask import (
     create_bisection_mask
 )
 
+from utils import is_2d_bool_array
+
 def _is_in_ellipse(h, k, a, b, theta, r, x, y):
     x_prime = (x-h)*np.cos(theta) + (y-k)*np.sin(theta)
     y_prime = -(x-h)*np.sin(theta) + (y-k)*np.cos(theta)
@@ -175,9 +177,7 @@ def test_create_near_minor_axis_mask(sweep, h, k, theta, shape):
     
     residual = expected_mask-maj_axis_mask
     assert np.sum(residual) == 0
-
-#TODO: test bisection mask and exceptions
-
+    
 @pytest.mark.parametrize(
     "h, k, theta, shape, expected_exception",
     [
@@ -220,25 +220,51 @@ def _construct_expected_bisection_pos_mask(h,k,theta,shape):
 
 
 def test_create_bisection_mask():
-    #TODO: write docstring
-    h, k, theta, shape = 49.5, 49.5, 0, (100,100)
+    """Tests create_bisection_mask"""
+    # Specify how large of a mask you want to test 
+    #   Shape will be (2*dim_to_test, 2*dim_to_test)
+    dim_to_test = 50
+
+    # Specify step increment for theta range is as follows:
+    #   Starts at -2*pi/steps
+    #   Ends at 2*pi/ steps
+    #   Step = steps
     steps = 16
 
+    # For this test we are using the exact center of mask as ellipse
+    #   IMPORTANT: Changing this will cause symmetry tests to fail
+    h = dim_to_test - 0.5
+    k = dim_to_test - 0.5
+    shape = (dim_to_test*2,dim_to_test*2)
+
+    # Iterate through theta range [-2*pi,2*pi] by step size steps
     for i in range(-2*steps,2*steps+1):
+        # Calculate theta:
         theta = np.pi/steps * i
+
+        # Construct the expected pos mask nad negate to get not_mask:
         expected_pos = _construct_expected_bisection_pos_mask(h,k,theta,shape)
         expected_neg = np.logical_not(expected_pos)
 
-        (pos,neg) = create_bisection_mask(h,k,theta,shape)
+        # Create bisection mask and verify it is two masks:
+        bisections = create_bisection_mask(h,k,theta,shape)
+        assert len(bisections) == 2
 
+        # Specify which is pos and neg mask and verify both are 2d boolean arrays:
+        pos = bisections[0]
+        assert is_2d_bool_array(pos)
+
+        neg = bisections[1]
+        assert is_2d_bool_array(neg)
+
+        # Verify Residual between expected pos/neg is exactly the same as pos/neg:
         pos_residual = np.sum(np.logical_xor(expected_pos,pos))
         assert pos_residual == 0
 
         neg_residual = np.sum(np.logical_xor(expected_neg,neg))
         assert neg_residual == 0
 
-        #write that this only works centered
+        # Verify Symmetry:
         flipped_residual = np.sum(np.logical_xor(np.logical_not(pos),neg))
         assert flipped_residual == 0
-
         assert np.sum(pos) == np.sum(neg)

@@ -4,10 +4,13 @@ from utils import is_float_int, is_2d_array_shape
 
 from mask import create_ellipse_mask, create_bisection_mask, create_near_major_axis_mask, create_near_minor_axis_mask
 
-class gofher_parameters:
+class GofherParameters:
     """Contains gofher ellipse parameters"""
 
     def __init__(self):
+        self.name = ""
+        self.ref_band = ""
+
         self.h = np.nan
         self.k = np.nan
         self.a = np.nan
@@ -23,6 +26,12 @@ class gofher_parameters:
         self.sparcfire_bulge_min_axis_len = np.nan
 
         self.sparcfire_bulge_disk_f = np.nan
+
+    def __str__(self):
+        return f"{self.name}"
+
+    def __repr__(self):
+        return f"GofherParameters('{self.name}')"
 
     def calculate_from_sparcfire(self, bulge_disk_f: float = 1.0):
         """Calculate gofher paramteres from sparcfire data
