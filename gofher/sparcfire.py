@@ -34,21 +34,50 @@ DATA_COLUMNS = [
 
 def standard_normalize_name(name: str) -> str:
     """Given a name string in format of 'name_refband', returns 'name'"""
-    return name.strip().rsplit("_")[0]
+
+    # Validate input:
+    if not isinstance(name, str):
+        raise ValueError("name must be a string")
+
+    # Normalize name:
+    return name.strip().rsplit("_",1)[0]
 
 def standard_ref_band_from_name(name: str) -> str:
     """Given a name string in format of 'name_refband', returns 'refband'"""
-    return name.strip().rsplit("_")[-1]
 
-def gofher_params_from_sparcfire_row(row,
+    # Validate input:
+    if not isinstance(name, str):
+        raise ValueError("name must be a string")
+    
+    if name.count("_") < 1:
+        raise ValueError("name must be in format of 'name_refband'")
+    
+    # Ref from name:
+    return name.strip().rsplit("_",1)[-1]
+
+def _gofher_params_from_sparcfire_row(row: pd.Series,
         normalize_name: Callable[[str],str] | None = standard_normalize_name,
         get_ref_band: Callable[[str],str] | None = standard_ref_band_from_name
     ) -> GofherParameters:
-    """TODO: write this"""
-    #print(row)
+    """Given a row from a SpArcFiRe galaxy.csv file, returns a GofherParameters object
+    
+    Args:
+        row: a row from a SpArcFiRe galaxy.csv file
+        normalize_name: a function that takes a string and returns a string
+        get_ref_band: a function that takes a string and returns a string
+
+    Returns:
+        a GofherParameters object
+    """
     the_gofher_params = GofherParameters()
     has_columns = row.index.tolist()
 
+    # Validate input:
+
+    # Verify row is a pandas Series:
+    if not isinstance(row, pd.Series):
+        raise ValueError("row must be a pandas Series")
+    
     # Verify row[NAME_KEY] exists and is valid:
     if not NAME_KEY in has_columns:
         raise ValueError("Missing required column {NAME_KEY}")
@@ -77,7 +106,6 @@ def gofher_params_from_sparcfire_row(row,
     elif len(row[NAME_KEY]) == 0:
         raise ValueError(f"Column {NAME_KEY} must have len > 0")
     
-        
     # Verify ref_band_from_normalized_name is a function or None:
     if not get_ref_band is None:
         # Verify normalize_name is a function:
@@ -110,24 +138,42 @@ def gofher_params_from_sparcfire_row(row,
         the_gofher_params.ref_band = the_ref_band
     
     # Set all data:
-    the_gofher_params.disk_maj_angle = row[DISK_MAJ_ANGLE_KEY]
-    the_gofher_params.disk_min_axs_len = row[DISK_MIN_AXS_LEN_KEY]
-    the_gofher_params.disk_maj_axs_len = row[DISK_MAJ_AXS_LEN_KEY]
-    the_gofher_params.input_center_c = row[INPUT_CENTER_C_KEY]
-    the_gofher_params.input_center_r = row[INPUT_CENTER_R_KEY]
-    the_gofher_params.bulge_maj_axs_len = row[BULGE_MAJ_AXS_LEN_KEY]
-    the_gofher_params.bulge_axis_ratio = row[BULGE_AXS_RATIO_KEY]
-    the_gofher_params.bulge_maj_axs_angle = row[BULGE_MAJ_AXS_ANGLE_KEY]
+    the_gofher_params.sparcfire_input_c = row[INPUT_CENTER_C_KEY]
+    the_gofher_params.sparcfire_input_r = row[INPUT_CENTER_R_KEY]
+    the_gofher_params.sparcfire_disk_maj_axis_len = row[DISK_MAJ_AXS_LEN_KEY]
+    the_gofher_params.sparcfire_disk_min_axis_len = row[DISK_MIN_AXS_LEN_KEY]
+    the_gofher_params.sparcfire_disk_maj_axis_angle = row[DISK_MAJ_ANGLE_KEY]
+    the_gofher_params.sparcfire_bulge_maj_axis_len = row[BULGE_MAJ_AXS_LEN_KEY]
+    the_gofher_params.sparcfire_bulge_axis_ratio = row[BULGE_AXS_RATIO_KEY]
+    the_gofher_params.sparcfire_bulge_axis_angle = row[BULGE_MAJ_AXS_ANGLE_KEY]
+
+    print(the_gofher_params.__dict__)
 
     return the_gofher_params
 
-def construct_gofher_params_from_sparcfire_csv(
+def gofher_params_from_sparcfire_csv(
         csv_path: str, 
         normalize_name: Callable[[str],str] | None = standard_normalize_name,
         get_ref_band: Callable[[str],str] | None = standard_ref_band_from_name,
         fail_silently_on_row_error: bool = False) -> list[GofherParameters]:
-    """TODO: write this"""
-    # Validate csv_path:
+    """Given a path to a CSV file, returns a list of GofherParameters objects
+    
+    Args:
+        csv_path: path to csv file
+        normalize_name: function that takes a name string and returns a normalized name string
+        get_ref_band: function that takes a name string and returns a ref band string
+        fail_silently_on_row_error: if True, will not raise an error if a row fails to parse
+        
+    Returns:
+        list of GofherParameters objects
+    """
+    # Validate input:
+
+    # Validate csv_path is string:
+    if not isinstance(csv_path, str):
+        raise ValueError("csv_path must be a string")
+
+    # Validate csv_path exists:
     if not os.path.exists(csv_path):
         raise ValueError(f"No file found at csf_path={csv_path}")
     
@@ -164,7 +210,7 @@ def construct_gofher_params_from_sparcfire_csv(
     # Iterate through rows and construct gofher params:
     for _, row in df.iterrows():
         try:
-            all_gofher_params.append(gofher_params_from_sparcfire_row(row))
+            all_gofher_params.append(_gofher_params_from_sparcfire_row(row))
         except ValueError as e:
             if not fail_silently_on_row_error:
                 raise e
@@ -174,5 +220,32 @@ def construct_gofher_params_from_sparcfire_csv(
 
     return all_gofher_params
 
-construct_gofher_params_from_sparcfire_csv("C:\\Users\\school\\Desktop\\github\\gofher-refactor\\gofher\\tests\\data\\NGC2347_SDSS_psf4_background_256\\sparcfire_r_band_output\\NGC2347_r.csv")
-#TODO: make path relative and work on mas, windows, linux
+
+#all_gofher_params = gofher_params_from_sparcfire_csv("C:\\Users\\school\\Desktop\\github\\gofher-refactor\\gofher\\tests\\data\\NGC2347_SDSS_psf4_background_256\\sparcfire_r_band_output\\NGC2347_r.csv")
+
+"""
+gofher_params.shape = (419,419)
+gofher_params.calculate_from_sparcfire(0.25)
+gofher_params.output_to_csv("test.csv")
+
+the_dict = gofher_params.__dict__
+for key in the_dict:
+    print(f"{key}: {the_dict[key]}")
+
+
+import matplotlib.pyplot as plt
+from astropy.io import fits
+
+fits_path = "C:\\Users\\school\\Desktop\\github\\gofher-refactor\\gofher\\tests\\data\\NGC2347_SDSS_psf4_background_256\\fits\\NGC2347_r.fits"
+hdul = fits.open(fits_path)
+gofher_params = all_gofher_params[0]
+
+import numpy as np
+data = hdul[0].data
+m = np.mean(data)
+s = np.std(data)
+plt.imshow(data,vmax=m+3*s,vmin=m-3*s,origin='lower',cmap='gray')
+plt.imshow(gofher_params.create_ellipse_mask(),origin='lower',alpha=0.25)
+
+plt.show()
+"""

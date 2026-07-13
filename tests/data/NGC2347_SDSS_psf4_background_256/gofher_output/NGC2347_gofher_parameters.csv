@@ -1,0 +1,2 @@
+name,ref_band,shape_row,shape_col,h,k,a,b,theta,sparcfire_input_c,sparcfire_input_r,sparcfire_disk_maj_axis_len,sparcfire_disk_min_axis_len,sparcfire_disk_maj_axis_angle,sparcfire_bulge_axis_len,sparcfire_bulge_axis_ratio,sparcfire_bulge_axis_angle,sparcfire_bulge_disk_f
+NGC2347,r,419,419,196.3890961,250.4842873,36.01770850625,21.639077692519116,-1.458819067,197.8890961,251.9842873,236.5441021,142.1133219,1.458819067,17.19918865,0.8911384595,1.06518089,0.25
