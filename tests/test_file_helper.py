@@ -93,7 +93,7 @@ def test_write_array_file():
 
 @pytest.mark.parametrize("path, expected_exception", [
     ([], ValueError),
-    ("fake_file.fits", FileNotFoundError),
+    ("fake_file.npy", FileNotFoundError),
     ("tests/test_utils.py", ValueError)
 ])
 def test_read_array_file_exceptions(path, expected_exception):
@@ -109,16 +109,24 @@ def test_read_array_file():
     """
     RESIDUAL_TOLERANCE = 1e-6
 
+    # Generate a random numpy array:
     expected_arr = _generate_random_array()
-    arr_path = f"{uuid.uuid4}"
+
+    # Generate a random path:
+    arr_path = f"{uuid.uuid4()}.npy"
+
+    # Write random array to file:
     write_array_file(expected_arr, arr_path)
 
+    # Read written array and validate it is the same:
     arr = read_array_file(arr_path)
-
     assert arr.shape == expected_arr.shape
     assert np.abs(np.mean(arr)-np.mean(expected_arr)) < RESIDUAL_TOLERANCE
     assert np.abs(np.min(arr)-np.min(expected_arr)) < RESIDUAL_TOLERANCE
     assert np.abs(np.max(arr)-np.max(expected_arr)) < RESIDUAL_TOLERANCE
+
+    # Cleanup:
+    Path.unlink(arr_path)
 
 @pytest.mark.parametrize("path, expected_exception", [
     ([], ValueError),
@@ -132,8 +140,13 @@ def test_assure_folder_exists_exceptions(path, expected_exception):
 def test_assure_folder_exists():
     """Test functionality from assure_folder_exists"""
 
+    # Generate a random folder name:
     random_folder_name = f"{uuid.uuid4()}"
 
+    # Call function and validate directory exists:
     assure_folder_exists(random_folder_name)
 
     assert Path(random_folder_name).is_dir()
+
+    # Cleanup:
+    Path(random_folder_name).rmdir()
