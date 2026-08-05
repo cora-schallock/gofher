@@ -1,9 +1,22 @@
+"""A class to contain the gofher parameters to be used by GOFHER
+
+It features:
+    * parsing of a SpArcFiRe CSV to create parameters
+    * creating masks using the parameters
+"""
+
+
 import numpy as np
 import pandas as pd
 
 from utils import is_float_int, is_2d_array_shape, is_int
 
-from mask import create_ellipse_mask, create_bisection_mask, create_near_major_axis_mask, create_near_minor_axis_mask
+from mask import (
+    create_ellipse_mask, 
+    create_bisection_mask, 
+    create_near_major_axis_mask, 
+    create_near_minor_axis_mask
+)
 
 
 NAME_KEY = "name"

@@ -49,7 +49,8 @@ def test_read_gofher_parameters():
     gofher_params = read_gofher_parameters_from_csv(gofher_params_csv_path)
     assert isinstance(gofher_params, GofherParameters)
 
-    # Validate values:
+    # Validate values
+    #   Important: All values are from original SpArcFiRe CSV:
     assert gofher_params.name == "NGC2347"
     assert gofher_params.ref_band == "r"
     assert gofher_params.shape == (419,419)
