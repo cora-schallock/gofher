@@ -23,10 +23,12 @@ TEST_SPARCFIRE_DIR = "fits"
 TEST_FITS_FILE_NAME = "NGC2347_g.fits"
 
 def _get_test_fits_path() -> str:
+    """Helper function to get path to test fits file"""
     p = Path(__file__).resolve().parent
     return str(p.joinpath("data", TEST_GALAXY_DIR, TEST_SPARCFIRE_DIR, TEST_FITS_FILE_NAME))
 
 def _generate_random_array(shape =  (50,50)) -> np.ndarray:
+    """Helper function to generate a random numpy array of size shape"""
     rng = np.random.default_rng()
     return rng.random(shape)
 
