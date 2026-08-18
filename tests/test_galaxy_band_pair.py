@@ -16,6 +16,7 @@ TEST_GALAXY_DIR = "NGC2347_SDSS_psf4_background_256"
 TEST_SPARCFIRE_DIR = "fits"
 TEST_FITS_FILE_NAME = "NGC2347_{}.fits"
 
+# Residual tolerance for tests expecting a specific numerical value:
 RESIDUAL_TOLERANCE = 1e-6
 
 def _get_fits_path(band:str):

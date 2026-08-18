@@ -147,8 +147,6 @@ def _gofher_params_from_sparcfire_row(row: pd.Series,
     the_gofher_params.sparcfire_bulge_axis_ratio = row[BULGE_AXS_RATIO_KEY]
     the_gofher_params.sparcfire_bulge_axis_angle = row[BULGE_MAJ_AXS_ANGLE_KEY]
 
-    print(the_gofher_params.__dict__)
-
     return the_gofher_params
 
 def gofher_params_from_sparcfire_csv(

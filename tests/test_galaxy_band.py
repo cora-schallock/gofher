@@ -40,6 +40,8 @@ def _calculate_expected_normalization(arr: np.ndarray, mask: np.ndarray):
 @pytest.mark.parametrize("band, data, expected_exception", [
     ([],_generate_random_array(), TypeError),
     ("",_generate_random_array(), ValueError),
+    ("g-",_generate_random_array(), ValueError),
+    ("g_",_generate_random_array(), ValueError),
     ("g",[], TypeError),
     ("g",_generate_random_array((50,50,2)), TypeError),
     ("g",_generate_random_array((50,0)), ValueError)
