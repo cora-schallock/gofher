@@ -47,6 +47,10 @@ class GalaxyBand:
             raise ValueError("must call apply_normalization first")
         
         return self._normalized_data
+
+    def get_valid_pixel_mask(self) -> np.ndarray:
+        """Returns a boolean mask that masks out all np.nan/np.inf pixels"""
+        return np.isfinite(self.data)
     
     def apply_normalization(self, area_to_norm: np.ndarray | None = None) -> np.ndarray:
         """Apply normalization to all pixels included in boolean mask
@@ -95,5 +99,3 @@ class GalaxyBand:
         scale = the_max - the_min
         self._normalized_data[area_to_norm] = (self.data[area_to_norm] - the_min)/scale
         return self._normalized_data
-    
-    

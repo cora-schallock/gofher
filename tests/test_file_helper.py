@@ -22,6 +22,9 @@ TEST_GALAXY_DIR = "NGC2347_SDSS_psf4_background_256"
 TEST_SPARCFIRE_DIR = "fits"
 TEST_FITS_FILE_NAME = "NGC2347_g.fits"
 
+# Residual tolerance for tests expecting a specific numerical value:
+RESIDUAL_TOLERANCE = 1e-6
+
 def _get_test_fits_path() -> str:
     """Helper function to get path to test fits file"""
     p = Path(__file__).resolve().parent
@@ -48,7 +51,7 @@ def test_read_fits():
     Residual Tolerance:
         residule < 1e-6
     """
-    RESIDUAL_TOLERANCE = 1e-6
+    
     #IMPORTANT: Make sure these values match the test fits
     #   If multiple galaxies are added, test each galaxy's values seperately
 
@@ -109,7 +112,6 @@ def test_read_array_file():
     Residual Tolerance:
         residule < 1e-6
     """
-    RESIDUAL_TOLERANCE = 1e-6
 
     # Generate a random numpy array:
     expected_arr = _generate_random_array()

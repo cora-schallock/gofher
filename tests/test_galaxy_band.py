@@ -9,6 +9,10 @@ import pytest
 import numpy as np
 
 from galaxy_band import GalaxyBand
+from utils import is_2d_bool_array, is_2d_same_shape_arrays, is_float_int_array
+
+# Residual tolerance for tests expecting a specific numerical value:
+RESIDUAL_TOLERANCE = 1e-6
 
 def _generate_random_array(shape =  (50,50)) -> np.ndarray:
     """Helper function to generate a random numpy array of size shape"""
@@ -51,7 +55,7 @@ def test_galaxy_band():
     Residual Tolerance:
         residule < 1e-6
     """
-    RESIDUAL_TOLERANCE = 1e-6
+
     band = "r"
     data = np.array([[4.0,0.0],[1.0,2.0]])
     
@@ -63,6 +67,7 @@ def test_galaxy_band():
 
 def test_get_shape():
     """Test output expected from galaxy_band.get_shape()"""
+
     band = "g"
     data = _generate_random_array()
     gb = GalaxyBand(band,data)
@@ -95,7 +100,6 @@ def test_get_normalization():
     Residual Tolerance:
         sum of residule < 1e-6
     """
-    RESIDUAL_TOLERANCE = 1e-6
 
     band = "i"
     data = np.array([[4.0,0.0],[1.0,2.0]])
@@ -108,11 +112,33 @@ def test_get_normalization():
     normed = gb.get_normalization()
     assert np.sum(np.abs(normed-expected)) < RESIDUAL_TOLERANCE
 
+def test_get_valid_pixel_mask():
+    """Test get valid pixel mask"""
+
+    # Create a sample data and get the expected mask:
+    data = np.array([[4.0,np.nan],
+                     [1.0,np.inf]])
+    expected = np.array([[True,False],
+                         [True, False]])
+
+    # Get the valid pixel mask:
+    g_band = GalaxyBand("g",data)
+    valid_pixel_mask = g_band.get_valid_pixel_mask()
+
+    # Assert that it is bool 2D np.ndarray and matches expected
+    assert is_2d_bool_array(valid_pixel_mask)
+    assert is_2d_same_shape_arrays(valid_pixel_mask,data)
+    assert not np.any(np.logical_xor(valid_pixel_mask,expected))
+
 @pytest.mark.parametrize("data, area_to_norm, expected_exception", [
-    (np.array([[4.0,0.0],[1.0,2.0]]),np.array([[True,True]]), ValueError), #shapes different size
-    (np.array([[4.0,0.0],[1.0,2.0]]),np.array([[True,True],[True,0.25]]), TypeError), #invalid mask value
-    (np.array([[4.0,0.0],[1.0,np.nan]]),np.array([[False,False],[False,True]]), ValueError), #includes Nan value,
-    (np.array([[np.inf,0.0],[1.0,2.0]]),np.array([[True,False],[False,True]]), ValueError) #includes INF value
+    (np.array([[4.0,0.0],[1.0,2.0]]),
+     np.array([[True,True]]), ValueError), #shapes different size
+    (np.array([[4.0,0.0],[1.0,2.0]]),
+     np.array([[True,True],[True,0.25]]), TypeError), #invalid mask value
+    (np.array([[4.0,0.0],[1.0,np.nan]]),
+     np.array([[False,False],[False,True]]), ValueError), #includes Nan value,
+    (np.array([[np.inf,0.0],[1.0,2.0]]),
+     np.array([[True,False],[False,True]]), ValueError) #includes INF value
 ])
 def test_apply_normalization_expections(data, area_to_norm, expected_exception):
     """Test exceptions expected from galaxy_band constructor"""
@@ -133,7 +159,6 @@ def test_apply_normalization():
 
     Resdisual tolerence: 1e-6 
     """
-    RESIDUAL_TOLERANCE = 1e-6
 
     band = "i"
     test_array = np.array([[4.0,0.0],[1.0,2.0]])
@@ -144,4 +169,6 @@ def test_apply_normalization():
         expected = _calculate_expected_normalization(test_array,mask)
         normalization = gb.apply_normalization(mask)
 
+        assert is_float_int_array(normalization)
+        assert is_2d_same_shape_arrays(normalization,expected)
         assert np.sum(np.abs(normalization-expected)) < RESIDUAL_TOLERANCE
