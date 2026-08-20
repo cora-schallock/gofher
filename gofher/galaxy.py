@@ -144,21 +144,31 @@ class Galaxy:
             elif not fail_silently_on_missing_band:
                 raise RuntimeError(f"missing {band} band")
 
-        area_to_norm = np.ones(self.gofher_params.shape,bool)
+        # Calaculate values for mask using sparcfire:
+        # TODO: would this be better to remove here, so area_to_consider can be near major
+        # etc.
+        self.gofher_params.calculate_from_sparcfire(sparcfire_bulge_disk_f)
+
+        # Start with the ellipse:
+        area_to_norm = self.gofher_params.create_ellipse_mask()
+
+        # Combine all the valid pixel masks:
         for band in galaxy_has_bands:
             the_band = self.get_band(band)
             the_band_valid_pixels = the_band.get_valid_pixel_mask()
 
             area_to_norm = np.logical_and(area_to_norm,the_band_valid_pixels)
 
-        if area_to_consider is None:
+        # If area_to_norm is provided, cobine it as well:
+        if area_to_consider is not None:
             area_to_norm = np.logical_and(area_to_norm,area_to_consider)
 
+        # Apply the same normalization to all the bands:
         for band in galaxy_has_bands:
             the_band = self.get_band(band)
             the_band.apply_normalization(area_to_norm)
 
-        #TODO:
+        #TODO: I would like a helper function to make band pairs
         #construct band pairs
         #create diff image, bisect, classify
 
