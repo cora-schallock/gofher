@@ -133,6 +133,6 @@ def test_galaxy_band_pair_calculate_diff_image():
     # Validate diff_image values with expected values:
     assert max_residual < RESIDUAL_TOLERANCE
     assert min_residual < RESIDUAL_TOLERANCE
-    assert sum_residual > RESIDUAL_TOLERANCE
+    assert sum_residual < RESIDUAL_TOLERANCE
     assert mean_residual < RESIDUAL_TOLERANCE
     assert std_residual < RESIDUAL_TOLERANCE

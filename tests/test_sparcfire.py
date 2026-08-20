@@ -12,9 +12,9 @@ IMPORTANT:
         values will need to be updated.
 """
 
+from pathlib import Path
 
 import pytest
-from pathlib import Path
 
 from gofher.gofher_parameters import GofherParameters
 
@@ -97,7 +97,7 @@ def test_gofher_params_from_sparcfire_csv_exceptions(path,
         gofher_params_from_sparcfire_csv(path, normalize_name, get_ref_band)
 
 
-def test_gofher_params_from_sparcfire_csv():
+def test_gofher_params_from_specific_test_sparcfire_csv():
     """Test output expected from gofher_params_from_sparcfire_csv"""
     #IMPORTANT: Make sure these values match the test csv
     #   If multiple galaxies are added, test each galaxy's values seperately
@@ -123,4 +123,3 @@ def test_gofher_params_from_sparcfire_csv():
     assert gofher_params.sparcfire_bulge_maj_axis_len == 17.19918865
     assert gofher_params.sparcfire_bulge_axis_ratio == 0.8911384595
     assert gofher_params.sparcfire_bulge_axis_angle == 1.06518089
-    

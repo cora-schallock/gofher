@@ -5,6 +5,7 @@ It features:
     * creating masks using the parameters
 """
 
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -107,25 +108,32 @@ class GofherParameters:
         """
 
         if not is_float_int(self.sparcfire_input_c):
-            raise ValueError("self.sparcfire_input_c is invalid")
+            raise TypeError("self.sparcfire_input_c is invalid")
         
         if not is_float_int(self.sparcfire_input_r):        
-            raise ValueError("self.sparcfire_input_r is invalid")
+            raise TypeError("self.sparcfire_input_r is invalid")
         
         if not is_float_int(self.sparcfire_disk_maj_axis_angle):
-            raise ValueError("self.sparcfire_disk_maj_axs_angle is invalid")
+            raise TypeError("self.sparcfire_disk_maj_axs_angle is invalid")
 
         if bulge_disk_f != 0.0 and not is_float_int(self.sparcfire_disk_maj_axis_len):
-            raise ValueError("self.sparcfire_maj_axis_len is invalid")
+            raise TypeError("self.sparcfire_maj_axis_len is invalid")
         
         if bulge_disk_f != 0.0 and not is_float_int(self.sparcfire_disk_min_axis_len):
-            raise ValueError("self.sparcfire_min_axis_len is invalid")
+            raise TypeError("self.sparcfire_min_axis_len is invalid")
         
         if bulge_disk_f != 1.0 and not is_float_int(self.sparcfire_bulge_maj_axis_len):
-            raise ValueError("self.sparcfire_bulge_maj_axis_len is invalid")
+            raise TypeError("self.sparcfire_bulge_maj_axis_len is invalid")
+
+        if bulge_disk_f not in [0.0,1.0] and \
+            self.sparcfire_bulge_maj_axis_len > self.sparcfire_disk_maj_axis_len:
+            raise ValueError("bulge maj. axis len can not be larger or same as disk")
         
-        if not is_float_int(bulge_disk_f) or bulge_disk_f < 0.0 or bulge_disk_f > 1.0:
-            raise ValueError("bulge_disk_f must be float in range [0,1]")
+        if not is_float_int(bulge_disk_f):
+            raise TypeError("bulge_disk_f must be float")
+
+        if bulge_disk_f < 0.0 or bulge_disk_f > 1.0:
+            raise ValueError("bulge_disk_f must be in range [0,1]")
 
         self.sparcfire_bulge_disk_f = bulge_disk_f
 
@@ -134,7 +142,7 @@ class GofherParameters:
         self.theta = self.sparcfire_disk_maj_axis_angle * -1.0   
 
         diff = self.sparcfire_disk_maj_axis_len - self.sparcfire_bulge_maj_axis_len
-        self.a = self.sparcfire_bulge_maj_axis_len + diff*self.sparcfire_bulge_disk_f
+        self.a = self.sparcfire_bulge_maj_axis_len + diff*bulge_disk_f
         self.b = self.sparcfire_disk_min_axis_len * (self.a/self.sparcfire_disk_maj_axis_len) #TODO: fix this!
 
         self.a *= 0.5
@@ -308,7 +316,7 @@ class GofherParameters:
             raise ValueError("sweep must be and float/int or numpy equivalent")
     
         if not sweep >= 0 and sweep <= np.pi/2:
-            raise ValueError("sweep must be between 0 and pi/2")
+            raise ValueError("sweep must be between 0 and pi/2 (inclusive)")
         
         # Validate Object Parameters:
         if not is_2d_array_shape(self.shape):
@@ -337,13 +345,20 @@ class GofherParameters:
     
     def output_to_csv(self, csv_path: str):
         """Write the gofher parameters to a csv file at csv_path."""
+
+        if not isinstance(csv_path, str):
+            raise TypeError(f"given csv_path {csv_path} is not a str")
+
+        if Path(csv_path).suffix != ".csv":
+            raise ValueError(f"csv_path {csv_path} not be a .csv file")
+
         # Collect data to write:
         data = {
             NAME_KEY: self.name,
             REF_BAND_KEY: self.ref_band,
             SHAPE_ROW_KEY: self.shape[0],
             SHAPE_COL_KEY: self.shape[1],
-            H_KEY: np.nan,
+            H_KEY: self.h,
             K_KEY: self.k,
             A_KEY: self.a,
             B_KEY: self.b,
@@ -364,8 +379,7 @@ class GofherParameters:
         df.to_csv(csv_path, index=False, na_rep='')
     
 
-def read_gofher_parameters_from_csv(csv_path: str,
-                                    has_sparcfire: bool = True,
+def read_gofher_parameters_from_csv(csv_path: str
                                     ) -> GofherParameters:
     """Given a GofherParaemeters csv create a GofherParaemeters 
     
@@ -375,11 +389,19 @@ def read_gofher_parameters_from_csv(csv_path: str,
     Returns:
         GofherParameters with values from the csv
     """
+
+    if not isinstance(csv_path, str):
+        raise TypeError(f"csv_path must be str, given {csv_path}")
+
+    if Path(csv_path).suffix != ".csv":
+        raise ValueError(f"csv_path must be .csv file, given {csv_path}")
+
+    if not Path.is_file(csv_path):
+        raise ValueError(f"given csv_path {csv_path} does not exist")
+
     df = pd.read_csv(csv_path, na_values=[""])
     the_galaxy = df.iloc[0]
     has_columns = the_galaxy.index.tolist()
-
-    print(f"has_columns: {has_columns}")
 
     the_gofher_params = GofherParameters()
 
@@ -401,8 +423,6 @@ def read_gofher_parameters_from_csv(csv_path: str,
             raise ValueError(f"Missing required column {col}")
         
         if not is_int(the_galaxy[col]) or the_galaxy[col] < 0:
-            print(the_galaxy[col])
-            print(type(the_galaxy[col]))
             raise ValueError(f"Column {col} must be a int > 0")
         
     # Set shape:
@@ -423,11 +443,9 @@ def read_gofher_parameters_from_csv(csv_path: str,
     the_gofher_params.k = the_galaxy[K_KEY]
     the_gofher_params.theta = the_galaxy[THETA_KEY]
 
-    # If not using sparcfire, return gofher parameters:
-    if not has_sparcfire:
-        return the_gofher_params
+    #TODO: if not using sparcfire, skip part below:
     
-    # Validate sparcfire parameters (if using sparcfire):
+    # Validate sparcfire parameters:
     for col in SPARCFIRE_DATA_COLUMNS:
         if not col in has_columns:
             raise ValueError(f"Missing required sparcfire column {col}")
@@ -435,7 +453,7 @@ def read_gofher_parameters_from_csv(csv_path: str,
         if not is_float_int(the_galaxy[col]):
             raise ValueError(f"Column {col} must be a float/int or numpy equivalent")
         
-    # Set sparcfire parameters (if using sparcfire):
+    # Set sparcfire parameters:
     the_gofher_params.sparcfire_input_c = the_galaxy[SPARCFIRE_INPUT_C_KEY]
     the_gofher_params.sparcfire_input_r = the_galaxy[SPARCFIRE_INPUT_R_KEY]
     the_gofher_params.sparcfire_disk_maj_axis_len = the_galaxy[SPARCFIRE_DISK_MAJ_AXIS_LEN_KEY]
@@ -449,4 +467,5 @@ def read_gofher_parameters_from_csv(csv_path: str,
     return the_gofher_params
 
 #LATER TODO: Add sep parameters and binning?
+#TODO: make sparcfire read/write optional for csv
         

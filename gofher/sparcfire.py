@@ -1,8 +1,7 @@
-import os
 import inspect
 from collections.abc import Callable
+from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from gofher_parameters import GofherParameters
@@ -172,8 +171,8 @@ def gofher_params_from_sparcfire_csv(
         raise ValueError("csv_path must be a string")
 
     # Validate csv_path exists:
-    if not os.path.exists(csv_path):
-        raise ValueError(f"No file found at csf_path={csv_path}")
+    if not Path.is_file(csv_path):
+        raise ValueError(f"No file found at csv_path={csv_path}")
     
     # Verify normalize_name is a function or None:
     if not normalize_name is None:
@@ -212,9 +211,9 @@ def gofher_params_from_sparcfire_csv(
         except ValueError as e:
             if not fail_silently_on_row_error:
                 raise e
-            else:
-                print(e)
-                continue
+            
+            print(e)
+            continue
 
     return all_gofher_params
 
