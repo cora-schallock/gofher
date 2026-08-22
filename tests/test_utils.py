@@ -95,3 +95,6 @@ def test_is_2d_same_shape_arrays(value1, value2, expected):
 def test_is_finite_array(value, expected):
     """Test exceptions expected from def test_is_finite_array"""
     assert is_finite_array(value) == expected
+
+#test: generate_band_pair_tuples
+#test: generate_band_pair_strings

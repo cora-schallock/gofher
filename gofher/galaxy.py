@@ -168,8 +168,8 @@ class Galaxy:
             the_band = self.get_band(band)
             the_band.apply_normalization(area_to_norm)
 
-        #TODO: I would like a helper function to make band pairs
-        #construct band pairs
+        #TODO: I would like a helper function to make band pairs - done in utils
+        #construct band pairs, validate finite values?
         #create diff image, bisect, classify
 
         #check galaxy has atleast 2 bands at start
