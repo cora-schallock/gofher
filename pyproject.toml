@@ -6,3 +6,7 @@ disable = "C0303"
 
 [tool.pylint.main]
 init-hook = "import os, sys; sys.path.insert(0, os.path.abspath('gofher'))"
+
+[project]
+name = "gofher"
+version = "0.1"
