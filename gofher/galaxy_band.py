@@ -6,7 +6,7 @@ apply normalization of data using apply_normalization()
 
 import numpy as np
 
-from utils import is_2d_bool_array, is_2d_array, is_2d_same_shape_arrays
+from gofher.utils import is_2d_bool_array, is_2d_array, is_2d_same_shape_arrays
 
 class GalaxyBand:
     """Data container for a single FITS waveband, and allows normalization"""
@@ -37,6 +37,15 @@ class GalaxyBand:
     def has_normalization(self) -> bool:
         """verify the data has been normalized"""
         return self._normalized_data is not None
+
+    def clear_normalization(self):
+        """clear the normalization
+        
+        Programmer Note: This should be called if galaxy.run() is called
+            multiple times for same galaxy, to mitigate any side effects
+            from previous runs.
+        """
+        self._normalized_data = None
     
     def get_normalization(self) -> np.ndarray:
         """get the normalized data

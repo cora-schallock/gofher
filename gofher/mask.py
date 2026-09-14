@@ -4,8 +4,8 @@ This module provides a collection of 2D binary masks
 that can be used on the data.
 """
 
-from arrays import create_meshgrid, create_major_axis_angle_array, create_minor_axis_angle_array, create_angle_array
-from utils import is_float_int, is_2d_array_shape
+from gofher.arrays import create_meshgrid, create_major_axis_angle_array, create_minor_axis_angle_array, create_angle_array
+from gofher.utils import is_float_int, is_2d_array_shape
 
 import numpy as np
 
@@ -212,42 +212,7 @@ def create_bisection_mask(h: float, k: float, theta: float,
 
     angle_array = create_angle_array(h, k, theta, shape)
 
-    #plt.imshow(angle_array,origin="lower")
-    #plt.show()
-
     pos_mask = (angle_array >= 0)
     neg_mask = (angle_array < 0)
     
     return (pos_mask, neg_mask)
-
-
-#import matplotlib.pyplot as plt
-
-#pos,neg = create_bisection_mask(50,50,np.pi,(100,100))
-#plt.imshow(pos,origin="lower")
-#plt.show()
-#plt.imshow(neg,origin="lower")
-#plt.show()
-
-
-"""
-#TODO: show this follows an inverse tangent distro
-import matplotlib.pyplot as plt
-
-xs = []
-ys = []
-b = 256
-s = 1000
-for i in range(0,int(b/2)+1):
-    ang = np.pi/b*i
-    c = s/2 - 0.5
-    print(c,s,ang)
-    maj = create_near_major_axis_mask(ang,c,c,np.pi/21,(s,s))
-    maj_top = np.sum(maj[0:int(s/2),:])
-    maj_bottom = np.sum(maj[int(s/2):s,:])
-    xs.append(maj_top)
-    print(maj_top,maj_bottom)
-    ys.append(i)
-plt.scatter(xs,ys)
-plt.show()
-"""

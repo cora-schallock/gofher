@@ -28,6 +28,16 @@ def _generate_random_galaxy_band(band="r",size=(50,50)):
     rng = np.random.default_rng()
     return GalaxyBand(band, rng.random(size=size))
 
+def _generate_test_pos_neg_mask(shape=(50,50)) -> tuple[np.ndarray]:
+    pos_mask = np.zeros(shape,bool)
+    neg_mask = np.zeros(shape,bool)
+
+    half = int(shape[0]/2)
+    pos_mask[:half,:] = True
+    neg_mask[half:,:] = True
+
+    return (pos_mask,neg_mask)
+
 @pytest.mark.parametrize("blue, red, expected_exception", [
     ([],_generate_random_galaxy_band(), TypeError),
     (_generate_random_galaxy_band,"", TypeError),
@@ -50,21 +60,23 @@ def test_galaxy_band_pair_run_normalization_exception():
     r = _generate_random_galaxy_band("r",test_size)
     g_minus_r = GalaxyBandPair(g,r)
 
+    # Create an example pos/neg masl:
+    (pos_mask,neg_mask) = _generate_test_pos_neg_mask(test_size)
+
     # Neither has normalization so runtime exception should occur:
     with pytest.raises(RuntimeError):
-        g_minus_r.calculate_diff_image()
+        g_minus_r.calculate_diff_image(pos_mask,neg_mask)
 
     # Apply normalziation to one galaxy band, so runtime exception should still occur:
     area_to_norm = np.ones(test_size,bool)
     g.apply_normalization(area_to_norm)
 
     with pytest.raises(RuntimeError):
-        g_minus_r.calculate_diff_image()
+        g_minus_r.calculate_diff_image(pos_mask,neg_mask)
 
     # Apply normalization to second galaxy band so should run without exception
     r.apply_normalization(area_to_norm)
-
-    g_minus_r.calculate_diff_image()
+    g_minus_r.calculate_diff_image(pos_mask,neg_mask)
 
 def test_galaxy_band_pair_calculate_diff_image():
     """Test galaxy_band_pair.calculate_diff_image() by running an example
@@ -108,6 +120,12 @@ def test_galaxy_band_pair_calculate_diff_image():
     r_band = GalaxyBand("r",r_data)
     g_minus_r = GalaxyBandPair(g_band,r_band)
 
+    # Generate an arbitrary pos/neg mask so it can be passed in:
+    # Programmer Note: This does not impact the diff_image itself,
+    #   so the mask values aren't considered. But this this needs to 
+    #   kept here so that it can be passed into calculate_diff_image()
+    (pos_mask,neg_mask) = _generate_test_pos_neg_mask(g_data.shape)
+
     # Create area_to_norm boolean mask
     # For this example, only include 0-199 rows (inclusive)
     area_to_norm = np.zeros(g_data.shape,bool)
@@ -118,7 +136,7 @@ def test_galaxy_band_pair_calculate_diff_image():
     r_band.apply_normalization(area_to_norm)
 
     # Calculate diff image:
-    diff_image = g_minus_r.calculate_diff_image()
+    diff_image = g_minus_r.calculate_diff_image(pos_mask,neg_mask)
 
     # Calculate the residual between expected values of (the_min, the_max, etc.)
     # and the diff image.
@@ -136,3 +154,50 @@ def test_galaxy_band_pair_calculate_diff_image():
     assert sum_residual < RESIDUAL_TOLERANCE
     assert mean_residual < RESIDUAL_TOLERANCE
     assert std_residual < RESIDUAL_TOLERANCE
+
+@pytest.mark.parametrize("pos_side, neg_side, expected_exception", [
+    (0,"S", TypeError),
+    ("N",{}, TypeError),
+    ("N","N", ValueError),
+    ("","N", ValueError),
+    ("N","", ValueError)
+])
+def test_classify_excpetions(pos_side,neg_side,expected_exception):
+    """Test exceptions from GalaxyBand.classify()"""
+
+    # Create two galaxy bands and create a waveband pair:
+    test_size = (10,10)
+    g = _generate_random_galaxy_band("g",test_size)
+    r = _generate_random_galaxy_band("r",test_size)
+    g_minus_r = GalaxyBandPair(g,r)
+    
+    # Create an example pos/neg mask:
+    (pos_mask,neg_mask) = _generate_test_pos_neg_mask(test_size)
+
+    # Apply normalization
+    # Programmer Note: This test doesn't use a Galaxy object or call Galaxy.run(),
+    #   so we have to manual apply_normalization()
+    g.apply_normalization(np.ones(test_size,bool))
+    r.apply_normalization(np.ones(test_size,bool))
+
+    # Calculate a diff image:
+    g_minus_r.calculate_diff_image(pos_mask,neg_mask)
+
+    # Attempt to classify but an exception will be raised:
+    with pytest.raises(expected_exception):
+        g_minus_r.classify(pos_side,neg_side)
+
+def test_classify_after_diff_exception():
+    """Test exception if GalaxyBand.classify() is run before GalaxyBand.calculate_diff_image()"""
+
+    # Create two galaxy bands and create a waveband pair:
+    test_size = (10,10)
+    g = _generate_random_galaxy_band("g",test_size)
+    r = _generate_random_galaxy_band("r",test_size)
+    g_minus_r = GalaxyBandPair(g,r)
+        
+    # Attempt to classify before creating diff_image:
+    with pytest.raises(RuntimeError):
+        g_minus_r.classify("N","S")
+
+#TODO: get_histogram_range,  get_diff_image

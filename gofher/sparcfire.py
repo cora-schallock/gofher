@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from gofher_parameters import GofherParameters
-from utils import is_float_int
+from gofher.gofher_parameters import GofherParameters
+from gofher.utils import is_float_int
 
 #CSV KEYS - DO NOT EDIT - Must be same as SpArcFiRe galaxy.csv columns:
 NAME_KEY = "name"
@@ -216,33 +216,3 @@ def gofher_params_from_sparcfire_csv(
             continue
 
     return all_gofher_params
-
-
-#all_gofher_params = gofher_params_from_sparcfire_csv("C:\\Users\\school\\Desktop\\github\\gofher-refactor\\gofher\\tests\\data\\NGC2347_SDSS_psf4_background_256\\sparcfire_r_band_output\\NGC2347_r.csv")
-
-"""
-gofher_params.shape = (419,419)
-gofher_params.calculate_from_sparcfire(0.25)
-gofher_params.output_to_csv("test.csv")
-
-the_dict = gofher_params.__dict__
-for key in the_dict:
-    print(f"{key}: {the_dict[key]}")
-
-
-import matplotlib.pyplot as plt
-from astropy.io import fits
-
-fits_path = "C:\\Users\\school\\Desktop\\github\\gofher-refactor\\gofher\\tests\\data\\NGC2347_SDSS_psf4_background_256\\fits\\NGC2347_r.fits"
-hdul = fits.open(fits_path)
-gofher_params = all_gofher_params[0]
-
-import numpy as np
-data = hdul[0].data
-m = np.mean(data)
-s = np.std(data)
-plt.imshow(data,vmax=m+3*s,vmin=m-3*s,origin='lower',cmap='gray')
-plt.imshow(gofher_params.create_ellipse_mask(),origin='lower',alpha=0.25)
-
-plt.show()
-"""

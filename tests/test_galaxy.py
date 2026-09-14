@@ -3,6 +3,7 @@
 The script is run using the commend: python -m pytest
 """
 from pathlib import Path
+import numpy as np
 
 import pytest
 
@@ -25,7 +26,7 @@ def _get_test_fits_path(band) -> str:
     fits_file_name = f"NGC2347_{band}.fits"
 
     p = Path(__file__).resolve().parent
-    return str(p.joinpath("data", TEST_GALAXY_DIR, TEST_SPARCFIRE_DIR, fits_file_name))
+    return str(p.joinpath("data", TEST_GALAXY_DIR, TEST_FITS_DIR, fits_file_name))
 
 def _get_test_galaxy_param() -> GofherParameters:
     # Read in the gofher params from the provided SpArcFiRe CSV:
@@ -97,15 +98,17 @@ def test_construct_galaxy_band_from_fits():
     for band in bands:
         the_galaxy.construct_galaxy_band_from_fits(band,_get_test_fits_path(band))
 
-@pytest.mark.parametrize("bands, f, fail_silently, expected_exception", [
-    ([], 1.0, True, TypeError),
-    (["a",{}], 1.0, True, ValueError),
-    (["g","r"], dict(), True, TypeError),
-    (["g","r"], -1.0, True, TypeError),
-    (["g","r"], 1.5, True, TypeError),
-    (["g","r"], 0.5, "", TypeError)
+@pytest.mark.parametrize("bands, f, area, fail_silently, expected_exception", [
+    ([], 1.0, True, None, ValueError),
+    (["a",{}], 1.0, None, True, TypeError),
+    (["g","r"], dict(), None, True, TypeError),
+    (["g","r"], -1.0, None, True, ValueError),
+    (["g","r"], 1.5, None, True, ValueError),
+    (["g","r"], 0.5, "", True, TypeError),
+    (["g","r"], 0.5, np.ones((10,10),bool), True, ValueError),
+    (["g","r"], 0.5, None, "", TypeError)
 ])
-def test_run_exceptions(bands, f, fail_silently, expected_exception):
+def test_run_exceptions(bands, f, area, fail_silently, expected_exception):
     """Verify the exceptions raised in Galaxy.run()"""
     # Get test gofher param:
     gofher_param = _get_test_galaxy_param()
@@ -119,7 +122,10 @@ def test_run_exceptions(bands, f, fail_silently, expected_exception):
 
     # Validate the correct excpetion is raised:
     with pytest.raises(expected_exception):
-        the_galaxy.run(bands,f,fail_silently)
+        the_galaxy.run(bluer_to_redder_bands=bands,
+                       sparcfire_bulge_disk_f=f,
+                       area_to_consider=area,
+                       fail_silently_on_missing_band=fail_silently)
 
 def test_run_silent_fail():
     """Test fail_silently_on_missing_band parameter in Galaxy.run()"""
@@ -135,25 +141,34 @@ def test_run_silent_fail():
 
     # No bands are present yet, so it causes a RuntimeError:
     with pytest.raises(RuntimeError):
-        the_galaxy.run(bands,f,False)
+        the_galaxy.run(bluer_to_redder_bands=bands,
+                       sparcfire_bulge_disk_f=f,
+                       area_to_consider=None,
+                       fail_silently_on_missing_band=False)
 
     # Add the g band:
     the_galaxy.construct_galaxy_band_from_fits("g",_get_test_fits_path("g"))
 
     # r band still missing, so it casues a RuntimeError:
     with pytest.raises(RuntimeError):
-        the_galaxy.run(bands,f,False)
+        the_galaxy.run(bluer_to_redder_bands=bands,
+                       sparcfire_bulge_disk_f=f,
+                       area_to_consider=None,
+                       fail_silently_on_missing_band=False)
 
     # Add the r band:
     the_galaxy.construct_galaxy_band_from_fits("r",_get_test_fits_path("r"))
 
     # Now run should work without casuing an exception
-    the_galaxy.run(bands,f,False)
+    the_galaxy.run(bluer_to_redder_bands=bands,
+                   sparcfire_bulge_disk_f=f,
+                   area_to_consider=None,
+                   fail_silently_on_missing_band=False)
 
 def test_run():
     """Test Galaxy.run()"""
     # The parameters for the test:
-    bands = ['g','r','i','z','u']
+    bands = ['u','g','r','i','z']
     f = 0.5
     
     # Get test gofher param:
@@ -165,8 +180,9 @@ def test_run():
         the_galaxy.construct_galaxy_band_from_fits(band,_get_test_fits_path(band))
 
     # Run
-    the_galaxy.run(bands,f,False)
+    the_galaxy.run(bluer_to_redder_bands=bands,
+                   sparcfire_bulge_disk_f=f)
 
-    # TODO - verify the correct waveband pairs exist
-    # idk what else to check?
+
+#TODO: has_band, get_band, make_lupton_rgb, plot_figure
     

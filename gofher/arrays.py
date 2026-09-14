@@ -7,7 +7,7 @@ the creation of binary image masks GOFHER uses.
 
 import numpy as np
 
-from utils import (
+from gofher.utils import (
     is_float_int, 
     is_2d_array_shape, 
     is_float_int_array, 

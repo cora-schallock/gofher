@@ -89,6 +89,67 @@ def validate_gofher_param_specific_test(gofher_params: GofherParameters):
         gofher_params.sparcfire_bulge_axis_angle - 1.06518089) 
     assert sparcfire_bulge_axis_angle_residual < RESIDUAL_TOLERANCE
 
+def test_get_pos_neg_labels_excpetion():
+    # Create gofher parameter with no parameters:
+    gp = GofherParameters()
+
+    # With no theta at all, a RuntimeError excpetion should occur:
+    with pytest.raises(RuntimeError):
+        gp.get_pos_neg_labels()
+
+    # With an incorrect theta type, a TypeError exception should occur:
+    gp.theta = ""
+    with pytest.raises(TypeError):
+        gp.get_pos_neg_labels()
+
+    # If for some reason, theta is infitie throw value error:
+    gp.theta = np.inf
+    with pytest.raises(ValueError):
+        gp.get_pos_neg_labels()
+
+
+
+@pytest.mark.parametrize(
+    "theta, pos, neg",
+    [
+        (0*np.pi/4,"N","S"), 
+        (1*np.pi/4,"NE","SW"),
+        (2*np.pi/4,"E","W"),
+        (3*np.pi/4,"SE","NW"),
+        (4*np.pi/4,"S","N"),
+        (5*np.pi/4,"SW","NE"),
+        (6*np.pi/4,"W","E"),
+        (7*np.pi/4,"NW","SE"),
+    ]
+)
+def test_get_pos_neg_labels(theta, pos, neg):
+    """Test pos and neg side labels using theta from gofher parameters
+    
+    Assures theta offset by +/-2pi is same label"""
+
+    # Create gofher parameter with theta:
+    gp = GofherParameters()
+    gp.theta = theta
+
+    # Get the (pos,neg) labels, assure values and types are correct:
+    # Programmer Note: Wrote multiple test cases to make any issues more clear
+    labels = gp.get_pos_neg_labels()
+    assert len(labels) == 2
+    assert isinstance(labels, tuple)
+    assert isinstance(labels[0], str)
+    assert isinstance(labels[1], str)
+    assert labels == (pos,neg)
+
+    # Offset theta by -2pi and check label is same:
+    gp.theta = theta - 2*np.pi
+    offset_labels_1 = gp.get_pos_neg_labels()
+    assert labels == offset_labels_1
+
+    # Offset theta by +2pi and check label is same:
+    gp.theta = theta + 2*np.pi
+    offset_labels_2 = gp.get_pos_neg_labels()
+    assert labels == offset_labels_2
+
 @pytest.mark.parametrize(
     "c, r, ang, dmaj, dmin, bmaj, f, expected_exception",
     [
@@ -234,6 +295,75 @@ def test_create_ellipse_mask():
     ellipse_mask = gofher_params.create_ellipse_mask()
     assert is_2d_bool_array(ellipse_mask)
     assert ellipse_mask.shape == (100,100)
+
+
+@pytest.mark.parametrize(
+    "r, shape, h, k, a, b, theta, padding, expected_excpetion",
+    [
+        ("",(100,100), 50, 50, 20, 12, 0.0, 1, ValueError), #wrong type r
+        (0.0,(100,100), 50, 50, 20, 12, 0.0, 1, ValueError), #r too small
+        (1.0, "", 50, 50, 20, 12, 0.0, 1, ValueError), #wrong type shape
+        (0.0,(100, 100, 2), 50, 50, 20, 12, 0.0, 1, ValueError), #not 2D shape
+        (0.0,(100, 100), "", 50, 20, 12, 0.0, 1, ValueError), #h wrong type
+        (0.0,(100, 100), -5, 50, 20, 12, 0.0, 1, ValueError), #h too small
+        (0.0,(100, 100), 50, "", 20, 12, 0.0, 1, ValueError), #k wrong type
+        (0.0,(100, 100), 50, -5, 20, 12, 0.0, 1, ValueError), #k too small
+        (0.0,(100, 100), 50, 50, "", 12, 0.0, 1, ValueError), #a wrong type
+        (0.0,(100, 100), 50, 50, 0, 12, 0.0, 1, ValueError), #a too small
+        (0.0,(100, 100), 50, 50, 20, "", 0.0, 1, ValueError), #b wrong type
+        (0.0,(100, 100), 50, 50, 20, 0, 0.0, 1, ValueError), #b too small
+        (0.0,(100, 100), 50, 50, 20, 12, "", 1, ValueError), #theta wrong type
+        (0.0,(100, 100), 50, 50, 20, 12, 0.0, "", TypeError), #padding wrong type
+        (0.0,(100, 100), 50, 50, 20, 12, 0.0, -2, TypeError) #padding negative
+    ]
+)
+def test_get_ellipse_bounds_exceptions(r, shape, h, k, a, b, theta, padding, expected_excpetion):
+    """Test exceptions of GofherParameters.create_ellipse_mask()"""
+
+    # Create a gofher parameter and set the values:
+    gofher_params = GofherParameters()
+    gofher_params.shape = shape
+    gofher_params.h = h
+    gofher_params.k = k
+    gofher_params.a = a
+    gofher_params.b = b
+    gofher_params.theta = theta
+
+    # Validate that exception occurs:
+    with pytest.raises(expected_excpetion):
+        gofher_params.get_ellipse_bounds(r,padding)
+
+def test_get_ellipse_pixel_bounds():
+    """Test GofherParameters.create_ellipse_mask()"""
+    
+    # Create a gofher parameter and set the values:
+    gofher_params = GofherParameters()
+    gofher_params.shape = (100,100)
+    gofher_params.h = 50.5
+    gofher_params.k = 50.25
+    gofher_params.a = 20
+    gofher_params.b = 10
+    gofher_params.theta = 0
+
+    # Get the ellipse pixel bounds:
+    bounds = gofher_params.get_ellipse_bounds()
+    assert len(bounds) == 4
+
+    # Here the ellipse is centered at (50.5, 50.25)
+    # the semi major axis is in the direction of the positive x axis
+    # since a = 20, b = 10, the actual ellipse bounds is
+    # xmin = 30.5, xmax = 70.5, ymin = 40.25, ymax = 60.25
+    # but since we are using pixel bounds, the mins are rounded down
+    # with floor and the maxs are rounded up with ceil
+    expected_xmin = 30
+    expected_xmax = 71
+    expected_ymin = 40
+    expected_ymax = 61
+
+    assert np.abs(bounds[0]-expected_xmin) < RESIDUAL_TOLERANCE
+    assert np.abs(bounds[1]-expected_xmax) < RESIDUAL_TOLERANCE
+    assert np.abs(bounds[2]-expected_ymin) < RESIDUAL_TOLERANCE
+    assert np.abs(bounds[3]-expected_ymax) < RESIDUAL_TOLERANCE
 
 @pytest.mark.parametrize(
     "shape, h, k, theta, expected_excpetion",

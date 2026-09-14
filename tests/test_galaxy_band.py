@@ -86,6 +86,21 @@ def test_has_normalization():
 
     assert gb.has_normalization()
 
+def test_clear_normalization():
+    """tests the clear_normalization()"""
+    band = "i"
+    data = _generate_random_array()
+    gb = GalaxyBand(band,data)
+    gb.apply_normalization()
+
+    # Verify normalization worked, it should:
+    assert gb.has_normalization()
+
+    # Now clear the normlization:
+    gb.clear_normalization()
+    assert not gb.clear_normalization()
+
+
 def test_get_normalization_excpetion():
     """Test exception from galaxy_band.get_normalization()"""
 

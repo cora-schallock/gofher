@@ -14,7 +14,9 @@ from gofher.utils import (
     is_2d_bool_array, 
     is_2d_same_shape_arrays, 
     is_2d_array, 
-    is_finite_array
+    is_finite_array,
+    generate_band_pair_tuples,
+    generate_all_band_pair_strings
 )
 
 @pytest.mark.parametrize("value, expected", [
@@ -96,5 +98,58 @@ def test_is_finite_array(value, expected):
     """Test exceptions expected from def test_is_finite_array"""
     assert is_finite_array(value) == expected
 
-#test: generate_band_pair_tuples
-#test: generate_band_pair_strings
+@pytest.mark.parametrize("bands, expected_expectation", [
+    (1.0,TypeError),
+    ([1.0,{}], TypeError),
+    (["g"], ValueError)
+])
+def generate_band_pair_tuples_and_strings_exceptions(bands, expected_expectation):
+    """Test the excpetions expected for:
+    generate_band_pair_tuples() and generate_band_pair_strings() 
+
+    Programmer Note: The two functions have same behavior for exceptions
+        hence the combined test.
+    """
+
+    # Validate excpetion is raised for generate_band_pair_tuples()
+    with pytest.raises(expected_expectation):
+        generate_band_pair_tuples(bands)
+
+    # Validate excpetion is raised for generate_all_band_pair_strings()
+    with pytest.raises(expected_expectation):
+        generate_all_band_pair_strings(bands)
+
+@pytest.mark.parametrize("bands, expected", [
+    (["g","r"],
+     [("g","r")]),
+    (["g","r","i"],
+     [("g","r"),("g","i"),("r","i")]),
+    (["g","r","i","z"],
+     [("g","r"),("g","i"),("g","z"),("r","i"),("r","z"),("i","z")]),
+])
+def test_generate_band_pair_tuples(bands, expected):
+    """Test generate_band_pair_tuples()
+    
+    This function should return all ordered tuples are sorted
+    in lexigraphical order according to original list
+    """
+    
+    assert generate_band_pair_tuples(bands) == expected
+
+@pytest.mark.parametrize("bands, expected", [
+    (["g","r"],
+     ["g-r"]),
+    (["g","r","i"],
+     ["g-r","g-i","r-i"]),
+    (["g","r","i","z"],
+     ["g-r","g-i","g-z","r-i","r-z","i-z"]),
+])
+def test_generate_band_pair_strings(bands, expected):
+    """Test generate_band_pair_strings()
+    
+    This function should return all ordered strings are sorted
+    in lexigraphical order according to original list
+    """
+
+    assert generate_all_band_pair_strings(bands) == expected
+#TODO: is_int

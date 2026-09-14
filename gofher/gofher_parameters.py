@@ -6,19 +6,21 @@ It features:
 """
 
 from pathlib import Path
+import math
 
 import numpy as np
 import pandas as pd
 
-from utils import is_float_int, is_2d_array_shape, is_int
+from gofher.utils import is_float_int, is_2d_array_shape, is_int
 
-from mask import (
+from gofher.mask import (
     create_ellipse_mask, 
     create_bisection_mask, 
     create_near_major_axis_mask, 
     create_near_minor_axis_mask
 )
 
+INDETERMINANT_VOTE_LABEL = "-"
 
 NAME_KEY = "name"
 REF_BAND_KEY = "ref_band"
@@ -91,6 +93,43 @@ class GofherParameters:
 
     def __repr__(self):
         return f"GofherParameters('{self.name}')"
+
+    def get_pos_neg_labels(self) -> tuple[str]:
+        """Get the (pos,neg) labels using the gofher parameter theta
+        
+        IMPORTANT: Must have valid theta prior to calling
+        """
+
+        if np.isnan(self.theta):
+            raise RuntimeError("theta is nan, make sure theta is set correctly first")
+
+        if not np.isfinite(self.theta):
+            raise ValueError("theta must be finite value")
+
+        if not is_float_int(self.theta):
+            raise TypeError("theta must be float/int or Numpy equivalent")
+
+        theta = self.theta%(2*np.pi)
+        if theta < 0.0 or theta > 2*np.pi:
+            raise RuntimeError("converted theta error: theta modulo 2pi expected in range [0,2pi]")
+
+        labels = [("N","S"), # in range [0,1pi/8]
+                  ("NE","SW"), # in range (1pi/8,3pi/8)
+                  ("E","W"), # in range [3pi/8,5pi/8]
+                  ("SE","NW"), # in range (5pi/8,7pi/8)
+                  ("S","N"), # in range [7pi/8,9pi/8]
+                  ("SW","NE"), # in range (9pi/8,11pi/8)
+                  ("W","E"), # in range [11pi/8,13pi/8]
+                  ("NW","SE"), # in range (13pi/8,15pi/8)
+        ]
+
+        for i, label in enumerate(labels):
+            upper_bounds = (2*i+1)*np.pi/8
+            include_upper_bounds = (i%2) == 0
+            if theta < upper_bounds or (include_upper_bounds and theta == upper_bounds):
+                return label
+
+        return labels[0] #in range [15pi/8,16pi/8]
 
     def calculate_from_sparcfire(self, bulge_disk_f: float = 1.0):
         """Calculate gofher paramteres from sparcfire data
@@ -205,7 +244,101 @@ class GofherParameters:
         # Create Ellipse Mask:
         return create_ellipse_mask(self.h,self.k,self.a,self.b,self.theta,self.shape,r)
 
+    def get_ellipse_pixel_bounds(self,
+                                 r: float = 1.0,
+                                 padding: int = 0) -> tuple[int]:
+        """Using the ellipse from gofher parameters, find the pixel bounding box
 
+        Important:
+
+            First, this uses Uses pixel bounds so xmin, ymin use floor and
+                xmax, xmin us ceil to assure all ellipse is contained
+                in bounds
+
+            Second, it applies additional padding
+
+            Third it assures the following bounds: 
+                xmin in [0,shape[1]]
+                xmax in [0,shape[1]]
+                ymin in [0,shape[0]]
+                ymax in [0,shape[0]]
+
+                If bounds exceeded, rounds to closets bounds
+
+        Args:
+            r: scaling factor of ellipse (self.a & self.b)
+            padding: additional pixel padding added to sides
+
+        Returns:
+            (xmin,xmax,ymin,ymax) of pixel bounding box of ellipse + additional padding
+        """
+
+        # Validate Input:
+        if not is_float_int(r) or r < 0.0:
+            raise ValueError("r must be > 0 and float/int or numpy equivalent")
+                
+        # Validate Object Parameters:
+        if not is_2d_array_shape(self.shape):
+            raise ValueError("self.shape must be tuple containing exactly 2 ints & > 0")
+                
+        if not is_float_int(self.h):
+            raise ValueError("""self.h must be float/int or numpy equivalent
+                Assure all gofher parameters have been set.
+                If using sparcifre, self.calculate_from_sparcfire() 
+                must be called first.""")
+            
+        if not is_float_int(self.k):
+            raise ValueError("""self.k must be float/int or numpy equivalent
+                Assure all gofher parameters have been set.
+                If using sparcifre, self.calculate_from_sparcfire() 
+                must be called first.""")
+                
+        if not is_float_int(self.a) or self.a <0:
+            raise ValueError(""""self.a must be float/int or numpy equivalent
+                Assure all gofher parameters have been set.
+                If using sparcifre, self.calculate_from_sparcfire() 
+                must be called first.""")
+            
+        if not is_float_int(self.b) or self.b < 0:
+            raise ValueError(""""self.b must be float/int or numpy equivalent
+                Assure all gofher parameters have been set.
+                If using sparcifre, self.calculate_from_sparcfire() 
+                must be called first.""")
+            
+        if not is_float_int(self.theta):
+            raise ValueError(""""self.theta must be float/int or 
+                numpy equivalent. Assure all gofher parameters have 
+                been set. If using sparcifre, self.calculate_from_sparcfire() 
+                must be called first.""")
+
+        if not isinstance(padding,int):
+            raise TypeError("padding must be int")
+
+        if padding < 0:
+            raise ValueError("padding must can not be negative")
+
+        # Scale a and b by factor r:
+        a = self.a*r
+        b = self.b*r
+
+        # Calculate the x and y scale from extreme bounds to center of ellipse:
+        x_half = np.sqrt(a**2 * np.cos(self.theta)**2 + b**2 * np.sin(self.theta)**2)
+        y_half = np.sqrt(a**2 * np.sin(self.theta)**2 + b**2 * np.cos(self.theta)**2)
+
+        # Calculate the min and max bounds with additional padding:
+        xmin = math.floor(self.h-x_half) - padding
+        xmax = math.ceil(self.h+x_half) + padding
+        ymin = math.floor(self.k-y_half) - padding
+        ymax = math.ceil(self.k+y_half) + padding
+
+        # Assure values are in proper range:
+        xmin = np.clip(xmin,0,self.shape[1])
+        xmax = np.clip(xmax,0,self.shape[1])
+        ymin = np.clip(ymin,0,self.shape[0])
+        ymax = np.clip(ymax,0,self.shape[0])
+
+        return [xmin,xmax,ymin,ymax]
+    
     def create_bisection_masks(self) -> tuple[np.ndarray]:
         """Using the gofher parameters, create the bisection masks.
         See: create_bisection_masks in mask.py
