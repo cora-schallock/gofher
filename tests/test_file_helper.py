@@ -10,7 +10,7 @@ import pytest
 import numpy as np
 
 
-from file_helper import (
+from gofher.file_helper import (
     read_fits,
     write_array_file,
     read_array_file,

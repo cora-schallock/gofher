@@ -274,39 +274,54 @@ class GofherParameters:
         """
 
         # Validate Input:
-        if not is_float_int(r) or r < 0.0:
-            raise ValueError("r must be > 0 and float/int or numpy equivalent")
+        if not is_float_int(r):
+            raise TypeError("r must be float/int or numpy equivalent")
+
+        if r <= 0:
+            raise ValueError("r must be > 0")
                 
         # Validate Object Parameters:
         if not is_2d_array_shape(self.shape):
-            raise ValueError("self.shape must be tuple containing exactly 2 ints & > 0")
+            raise TypeError("self.shape must be tuple containing exactly 2 ints & > 0")
                 
         if not is_float_int(self.h):
-            raise ValueError("""self.h must be float/int or numpy equivalent
+            raise TypeError("""self.h must be float/int or numpy equivalent
                 Assure all gofher parameters have been set.
                 If using sparcifre, self.calculate_from_sparcfire() 
                 must be called first.""")
-            
+
+        if self.h <= 0:
+            raise ValueError("self.h must be > 0") 
+                   
         if not is_float_int(self.k):
-            raise ValueError("""self.k must be float/int or numpy equivalent
+            raise TypeError("""self.k must be float/int or numpy equivalent
                 Assure all gofher parameters have been set.
                 If using sparcifre, self.calculate_from_sparcfire() 
                 must be called first.""")
+
+        if self.k <= 0:
+            raise ValueError("self.k must be > 0") 
                 
-        if not is_float_int(self.a) or self.a <0:
-            raise ValueError(""""self.a must be float/int or numpy equivalent
+        if not is_float_int(self.a):
+            raise TypeError(""""self.a must be float/int or numpy equivalent
                 Assure all gofher parameters have been set.
                 If using sparcifre, self.calculate_from_sparcfire() 
                 must be called first.""")
+
+        if self.a <= 0:
+            raise ValueError("""self.a must be > 0""")
             
-        if not is_float_int(self.b) or self.b < 0:
-            raise ValueError(""""self.b must be float/int or numpy equivalent
+        if not is_float_int(self.b):
+            raise TypeError(""""self.b must be float/int or numpy equivalent
                 Assure all gofher parameters have been set.
                 If using sparcifre, self.calculate_from_sparcfire() 
                 must be called first.""")
+
+        if self.b <= 0:
+            raise ValueError("""self.b must be > 0""")
             
         if not is_float_int(self.theta):
-            raise ValueError(""""self.theta must be float/int or 
+            raise TypeError(""""self.theta must be float/int or 
                 numpy equivalent. Assure all gofher parameters have 
                 been set. If using sparcifre, self.calculate_from_sparcfire() 
                 must be called first.""")

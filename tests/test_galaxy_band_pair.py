@@ -7,9 +7,10 @@ from pathlib import Path
 import pytest
 import numpy as np
 
-from file_helper import read_fits
-from galaxy_band import GalaxyBand
-from galaxy_band_pair import GalaxyBandPair
+from gofher.utils import is_2d_same_shape_arrays
+from gofher.file_helper import read_fits
+from gofher.galaxy_band import GalaxyBand
+from gofher.galaxy_band_pair import GalaxyBandPair
 
 #IMPORTANT: Make sure these folder/file names reflect test file structure:
 TEST_GALAXY_DIR = "NGC2347_SDSS_psf4_background_256"
@@ -37,6 +38,45 @@ def _generate_test_pos_neg_mask(shape=(50,50)) -> tuple[np.ndarray]:
     neg_mask[half:,:] = True
 
     return (pos_mask,neg_mask)
+
+@pytest.mark.parametrize("mv, sv, std, expected_exception", [
+    (None, 1, 2, RuntimeError),
+    (10, None, 2, RuntimeError),
+    (10, 1, "a", TypeError),
+    (10, 1, -1, ValueError)
+])
+def test_get_histogram_range_exceptions(mv, sv, std, expected_exception):
+    """Test exceptions from get_histogram_range"""
+    # Create two galaxy bands and create a waveband pair:
+    test_size = (10,10)
+    g = _generate_random_galaxy_band("g",test_size)
+    r = _generate_random_galaxy_band("r",test_size)
+    g_minus_r = GalaxyBandPair(g,r)
+
+    # Manual set mean/std:
+    g_minus_r.mean_values = mv
+    g_minus_r.std_values = sv
+
+    # Check if exception is raised:
+    with pytest.raises(expected_exception):
+        g_minus_r.get_histogram_range(std)
+
+def test_get_histogram_range():
+    """Test exceptions from get_histogram_range"""
+    # Create two galaxy bands and create a waveband pair:
+    test_size = (10,10)
+    g = _generate_random_galaxy_band("g",test_size)
+    r = _generate_random_galaxy_band("r",test_size)
+    g_minus_r = GalaxyBandPair(g,r)
+
+    # Manual set mean/std - these are the values used for testing:
+    g_minus_r.mean_values = 5
+    g_minus_r.std_values = 1
+
+    # Verify histogram range returns mean +/- c*std
+    assert (4,6) == g_minus_r.get_histogram_range(1)
+    assert (3,7) == g_minus_r.get_histogram_range(2)
+    assert (2,8) == g_minus_r.get_histogram_range(3)
 
 @pytest.mark.parametrize("blue, red, expected_exception", [
     ([],_generate_random_galaxy_band(), TypeError),
@@ -155,6 +195,36 @@ def test_galaxy_band_pair_calculate_diff_image():
     assert mean_residual < RESIDUAL_TOLERANCE
     assert std_residual < RESIDUAL_TOLERANCE
 
+def test_get_diff_image():
+    """Test exceptions from GalaxyBand.classify()"""
+    
+    # Specify test paramateres and masks:
+    test_size = (10,10)
+    half = int(test_size[0]/2)
+    pos = np.ones(test_size, bool)
+    neg = np.ones(test_size, bool)
+    pos[:,:half] = False
+    neg[:,half:] = False
+
+    # Create two galaxy bands and normalize them:
+    g = _generate_random_galaxy_band("g",test_size)
+    r = _generate_random_galaxy_band("r",test_size)
+    g.apply_normalization()
+    r.apply_normalization()
+
+    # Create Band Pair and calculate diff image:
+    g_minus_r = GalaxyBandPair(g,r)
+    expected = g_minus_r.calculate_diff_image(pos,neg)
+
+    # Get the diff image and check correct type and shape:
+    diff_image = g_minus_r.get_diff_image()
+    assert isinstance(diff_image, np.ndarray)
+    assert is_2d_same_shape_arrays(expected, diff_image)
+
+    # Compare diff image from get_diff_image to residual:
+    assert np.sum(np.abs(diff_image-expected)) < RESIDUAL_TOLERANCE
+
+
 @pytest.mark.parametrize("pos_side, neg_side, expected_exception", [
     (0,"S", TypeError),
     ("N",{}, TypeError),
@@ -199,5 +269,3 @@ def test_classify_after_diff_exception():
     # Attempt to classify before creating diff_image:
     with pytest.raises(RuntimeError):
         g_minus_r.classify("N","S")
-
-#TODO: get_histogram_range,  get_diff_image

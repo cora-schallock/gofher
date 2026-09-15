@@ -7,14 +7,14 @@ The script is run using the commend: python -m pytest
 import pytest
 import numpy as np
 
-from mask import (
+from gofher.mask import (
     create_ellipse_mask, 
     create_near_major_axis_mask,
     create_near_minor_axis_mask,
     create_bisection_mask
 )
 
-from utils import is_2d_bool_array
+from gofher.utils import is_2d_bool_array
 
 def _is_in_ellipse(h, k, a, b, theta, r, x, y):
     x_prime = (x-h)*np.cos(theta) + (y-k)*np.sin(theta)

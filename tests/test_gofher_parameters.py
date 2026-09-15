@@ -300,24 +300,24 @@ def test_create_ellipse_mask():
 @pytest.mark.parametrize(
     "r, shape, h, k, a, b, theta, padding, expected_excpetion",
     [
-        ("",(100,100), 50, 50, 20, 12, 0.0, 1, ValueError), #wrong type r
+        ("",(100,100), 50, 50, 20, 12, 0.0, 1, TypeError), #wrong type r
         (0.0,(100,100), 50, 50, 20, 12, 0.0, 1, ValueError), #r too small
-        (1.0, "", 50, 50, 20, 12, 0.0, 1, ValueError), #wrong type shape
-        (0.0,(100, 100, 2), 50, 50, 20, 12, 0.0, 1, ValueError), #not 2D shape
-        (0.0,(100, 100), "", 50, 20, 12, 0.0, 1, ValueError), #h wrong type
-        (0.0,(100, 100), -5, 50, 20, 12, 0.0, 1, ValueError), #h too small
-        (0.0,(100, 100), 50, "", 20, 12, 0.0, 1, ValueError), #k wrong type
-        (0.0,(100, 100), 50, -5, 20, 12, 0.0, 1, ValueError), #k too small
-        (0.0,(100, 100), 50, 50, "", 12, 0.0, 1, ValueError), #a wrong type
-        (0.0,(100, 100), 50, 50, 0, 12, 0.0, 1, ValueError), #a too small
-        (0.0,(100, 100), 50, 50, 20, "", 0.0, 1, ValueError), #b wrong type
-        (0.0,(100, 100), 50, 50, 20, 0, 0.0, 1, ValueError), #b too small
-        (0.0,(100, 100), 50, 50, 20, 12, "", 1, ValueError), #theta wrong type
-        (0.0,(100, 100), 50, 50, 20, 12, 0.0, "", TypeError), #padding wrong type
-        (0.0,(100, 100), 50, 50, 20, 12, 0.0, -2, TypeError) #padding negative
+        (1.0, "", 50, 50, 20, 12, 0.0, 1, TypeError), #wrong type shape
+        (1.0,(100, 100, 2), 50, 50, 20, 12, 0.0, 1, TypeError), #not 2D shape
+        (1.0,(100, 100), "", 50, 20, 12, 0.0, 1, TypeError), #h wrong type
+        (1.0,(100, 100), -5, 50, 20, 12, 0.0, 1, ValueError), #h too small
+        (1.0,(100, 100), 50, "", 20, 12, 0.0, 1, TypeError), #k wrong type
+        (1.0,(100, 100), 50, -5, 20, 12, 0.0, 1, ValueError), #k too small
+        (1.0,(100, 100), 50, 50, "", 12, 0.0, 1, TypeError), #a wrong type
+        (1.0,(100, 100), 50, 50, 0, 12, 0.0, 1, ValueError), #a too small
+        (1.0,(100, 100), 50, 50, 20, "", 0.0, 1, TypeError), #b wrong type
+        (1.0,(100, 100), 50, 50, 20, 0, 0.0, 1, ValueError), #b too small
+        (1.0,(100, 100), 50, 50, 20, 12, "", 1, TypeError), #theta wrong type
+        (1.0,(100, 100), 50, 50, 20, 12, 0.0, "", TypeError), #padding wrong type
+        (1.0,(100, 100), 50, 50, 20, 12, 0.0, -2, ValueError) #padding negative
     ]
 )
-def test_get_ellipse_bounds_exceptions(r, shape, h, k, a, b, theta, padding, expected_excpetion):
+def test_get_ellipse_pixel_bounds_exceptions(r, shape, h, k, a, b, theta, padding, expected_excpetion):
     """Test exceptions of GofherParameters.create_ellipse_mask()"""
 
     # Create a gofher parameter and set the values:
@@ -331,7 +331,7 @@ def test_get_ellipse_bounds_exceptions(r, shape, h, k, a, b, theta, padding, exp
 
     # Validate that exception occurs:
     with pytest.raises(expected_excpetion):
-        gofher_params.get_ellipse_bounds(r,padding)
+        gofher_params.get_ellipse_pixel_bounds(r,padding)
 
 def test_get_ellipse_pixel_bounds():
     """Test GofherParameters.create_ellipse_mask()"""
@@ -346,7 +346,7 @@ def test_get_ellipse_pixel_bounds():
     gofher_params.theta = 0
 
     # Get the ellipse pixel bounds:
-    bounds = gofher_params.get_ellipse_bounds()
+    bounds = gofher_params.get_ellipse_pixel_bounds()
     assert len(bounds) == 4
 
     # Here the ellipse is centered at (50.5, 50.25)

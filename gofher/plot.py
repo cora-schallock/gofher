@@ -82,7 +82,7 @@ def plot_mask(ax: matplotlib.axes._axes.Axes,
         if pixel_bounds[2] >= pixel_bounds[3]:
             raise ValueError("pixel_bounds[2] must be larger than pixel_bounds[3]")
 
-    if not isinstance(c,int):
+    if not is_float_int(c):
         raise TypeError("c must be int")
 
     if c <= 0:

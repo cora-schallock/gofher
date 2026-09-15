@@ -73,9 +73,17 @@ class GalaxyBandPair:
     def get_histogram_range(self, 
                             std: float = 3) -> tuple[float, float]:
         """Calculate the range for histogram"""
-        if not is_float_int(self.mean_values):
+        # Validate input:
+        if not is_float_int(std):
+            raise TypeError("mean/std must be float")
+
+        if std <= 0:
+            raise ValueError("std must be strictly positive")
+
+        if not is_float_int(self.mean_values) or not is_float_int(self.std_values):
             raise RuntimeError("mean/std values must be float of int; ensure you called calculate_diff_image_prior")
 
+        # Calculate bounds:
         lower_bound = self.mean_values - std * self.std_values
         upper_bound = self.mean_values + std * self.std_values
         return (lower_bound,upper_bound)
@@ -184,5 +192,5 @@ class GalaxyBandPair:
     def __str__(self):
         return f"{self._bluer_band.band}-{self._redder_band.band}"
 
-    def __repr__(self):
-        return f"GalaxyBandPair({self._bluer_band.band}-{self._redder_band.band})"
+    #def __repr__(self):
+    #    return f"GalaxyBandPair({self._bluer_band.band}-{self._redder_band.band})"

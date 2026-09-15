@@ -8,6 +8,7 @@ import pytest
 import numpy as np
 
 from gofher.utils import (
+    is_int,
     is_float_int, 
     is_2d_array_shape, 
     is_float_int_array, 
@@ -21,12 +22,27 @@ from gofher.utils import (
 
 @pytest.mark.parametrize("value, expected", [
     (1, True),
+    (2.5, False),
+    ([], False),
+    ("a", False),
+    ({"key":"value"}, False),
+    (np.float64(64), False),
+    (np.int32(32), True),
+    (np.ones((2,2),int), False)
+])
+def test_is_int(value, expected):
+    """Test exceptions expected from is_float_int"""
+    assert is_int(value) == expected
+
+@pytest.mark.parametrize("value, expected", [
+    (1, True),
     (2.5, True),
     ([], False),
     ("a", False),
     ({"key":"value"}, False),
     (np.float64(64), True),
-    (np.int32(32.3), True)
+    (np.int32(32.3), True),
+    (np.ones((2,2),float), False)
 ])
 def test_is_float_int(value, expected):
     """Test exceptions expected from is_float_int"""
@@ -152,4 +168,3 @@ def test_generate_band_pair_strings(bands, expected):
     """
 
     assert generate_all_band_pair_strings(bands) == expected
-#TODO: is_int

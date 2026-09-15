@@ -8,8 +8,8 @@ from itertools import product
 import pytest
 import numpy as np
 
-from galaxy_band import GalaxyBand
-from utils import is_2d_bool_array, is_2d_same_shape_arrays, is_float_int_array
+from gofher.galaxy_band import GalaxyBand
+from gofher.utils import is_2d_bool_array, is_2d_same_shape_arrays, is_float_int_array
 
 # Residual tolerance for tests expecting a specific numerical value:
 RESIDUAL_TOLERANCE = 1e-6

@@ -19,6 +19,9 @@ from gofher.utils import (
 def create_meshgrid(shape: tuple[int]) -> tuple[np.ndarray, np.ndarray]:
     """creates a standard meshgrid with given shape"""
     # Validate input:
+    if not isinstance(shape, tuple):
+        raise TypeError("shape must be tuple")
+
     if not is_2d_array_shape(shape):
         raise ValueError("shape must be tuple containing exactly 2 ints")
     

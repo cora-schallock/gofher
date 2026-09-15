@@ -7,7 +7,7 @@ The script is run using the commend: python -m pytest
 import pytest
 import numpy as np
 
-from arrays import (
+from gofher.arrays import (
     create_meshgrid,
     create_distance_array, 
     create_angle_array, 
@@ -15,6 +15,45 @@ from arrays import (
     create_minor_axis_angle_array, 
     normalize_array
 )
+
+# Residual tolerance for tests expecting a specific numerical value:
+RESIDUAL_TOLERANCE = 1e-6
+
+@pytest.mark.parametrize(
+    "shape, expected_exception",
+    [
+        ([], TypeError),    #Case 1: not a tuple type
+        ((50.5,50), ValueError),    #Case 2: not all int
+        ((50,50,2), ValueError)     #Case 3: not 2 element
+    ]
+)
+def test_create_meshgrid(shape, expected_exception):
+    """Tests exceptions expected from create_meshgrid"""
+    with pytest.raises(expected_exception):
+        create_meshgrid(shape)
+
+def test_create_meshgrid():
+    """Test create_meshgrid"""
+    # Specify test shape:
+    shape = (2,2)
+
+    # Create meshgrid and verify it is two components:
+    returned = create_meshgrid(shape)
+    assert len(returned) == 2
+
+    # Verify xs, and ys are both np.ndarray of correct shape
+    xs, ys = returned
+    assert isinstance(xs,np.ndarray)
+    assert xs.shape == shape
+
+    assert isinstance(ys,np.ndarray)
+    assert ys.shape == shape
+
+    # Verify correct values:
+    assert np.sum(np.abs(xs[:,0] - 0)) < RESIDUAL_TOLERANCE
+    assert np.sum(np.abs(xs[:,1] - 1)) < RESIDUAL_TOLERANCE
+    assert np.sum(np.abs(ys[0,:] - 0)) < RESIDUAL_TOLERANCE
+    assert np.sum(np.abs(ys[1,:] - 1)) < RESIDUAL_TOLERANCE
 
 @pytest.mark.parametrize(
     "cx, cy, shape, expected_exception",
@@ -378,5 +417,3 @@ def test_normalize_array():
     # Checks avg. difference to be at most +/-0.001
     mean_single_residual = np.max(single_residual)
     assert mean_single_residual < 0.001
-
-#TODO: create_meshgrid

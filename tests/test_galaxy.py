@@ -7,9 +7,9 @@ import numpy as np
 
 import pytest
 
-from galaxy import Galaxy
-from gofher_parameters import GofherParameters
-from sparcfire import gofher_params_from_sparcfire_csv
+from gofher.galaxy import Galaxy
+from gofher.gofher_parameters import GofherParameters
+from gofher.sparcfire import gofher_params_from_sparcfire_csv
 
 #IMPORTANT: Make sure these folder/file names reflect test file structure:
 TEST_GALAXY_DIR = "NGC2347_SDSS_psf4_background_256"
