@@ -144,7 +144,7 @@ def test_plot_diff_histogram_exceptions(ax, bp, vrange, expected):
     (_genrate_axs(),"",_generate_area_to_norm_mask(),None,TypeError),
     (_genrate_axs(),_generate_random_galaxy_band_pair(),"",None,TypeError),
     (_genrate_axs(),_generate_random_galaxy_band_pair(),_generate_area_to_norm_mask(dtype=float),None,ValueError),
-    (_genrate_axs(),_generate_random_galaxy_band_pair((30,30)),_generate_area_to_norm_mask((50,50)),None,ValueError),
+    (_genrate_axs(),_generate_random_galaxy_band_pair(size=(30,30)),_generate_area_to_norm_mask(size=(50,50)),None,ValueError),
     (_genrate_axs(),_generate_random_galaxy_band_pair(),_generate_area_to_norm_mask(),{},TypeError),
     (_genrate_axs(),_generate_random_galaxy_band_pair(),_generate_area_to_norm_mask(),[10],ValueError),
     (_genrate_axs(),_generate_random_galaxy_band_pair(),_generate_area_to_norm_mask(),[10.5,11.5,20.5,21.5],TypeError),

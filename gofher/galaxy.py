@@ -86,7 +86,7 @@ class Galaxy:
 
         return None
     
-    def construct_galaxy_band_from_fits(self, band: str, fits_path: str | Path):
+    def construct_galaxy_band_from_fits(self, band: str, fits_path: str | Path) -> GalaxyBand:
         """Construct a galaxy_band from a fits file"""
 
         # Validate arguments:
@@ -238,9 +238,6 @@ class Galaxy:
         pos_mask = np.logical_and(area_to_norm,pos_mask)
         neg_mask = np.logical_and(area_to_norm,neg_mask)
 
-        a = np.sum(pos_mask)
-        b = np.sum(neg_mask)
-
         if np.sum(pos_mask) == 0:
             raise RuntimeError("""pos_mask has no True pixels.
             Verify area_to_norm and pos_mask are correct and have
@@ -330,7 +327,7 @@ class Galaxy:
         bands_in_rgb_order = [r_band,g_band,b_band]
         rgb_data = []
 
-        # Get the reference band in the case of kmissing bands for color channels:
+        # Get the reference band in the case of missing bands for color channels:
         ref_band = self.gofher_params.ref_band
 
         # Iterate through rgb color channels, if band present append to rgb_data,
@@ -372,6 +369,19 @@ class Galaxy:
 
         if dpi <= 0:
             raise ValueError("dpi must be strictly positive int")
+
+        # Check if there has been a run by looking at the band pairs:
+        if len(self._band_pairs) == 0:
+            raise RuntimeError("""no band_pairs; 
+            Assure Galaxy.run() was called prior to this and created at least one band pair""")
+
+        # Check that area_to_norm exists:
+        if not is_2d_bool_array(self._area_to_norm):
+            raise RuntimeError("area_to_norm is not 2D bool numpy array")
+
+        # Check the ref_band is present:
+        if not self.has_band(self.gofher_params.ref_band):
+            raise RuntimeError("missing ref_band")
         
         # Gather the following:
         # 1) pixel bounds - cropping used for diff image to not display background
@@ -440,12 +450,49 @@ class Galaxy:
         else:
             plt.show(fig)
 
+    def save_normalizations(self, path_to_folder: str | Path):
+        """Save the normalized data"""
+    
+        if not isinstance(path_to_folder, (str, Path)):
+            raise TypeError(f"given path_to_folder '{path_to_folder}' is not a str or Path")
+    
+        if isinstance(path_to_folder, str):
+            path_to_folder = Path(path_to_folder)
+
+        if path_to_folder.suffix != '':
+            raise ValueError("path_to_folder must be folder not file")
+
+        if not path_to_folder.exists():
+            raise FileNotFoundError(f"{path_to_folder} does not exist")
+
+        if not is_2d_bool_array(self._area_to_norm):
+            raise RuntimeError("""self._area_to_norm is not a 2D boolean numpy array
+            Assure Galaxy.run() is called first and _area_to_norm is correct""")
+            
+        if len(self._bands) == 0:
+            raise RuntimeError("""no bands""")
+    
+        if path_to_folder.is_file():
+            raise ValueError(f"'{path_to_folder}' must be folder not file")
+
+        if not path_to_folder.parent.exists():
+            raise RuntimeError(f"folder '{path_to_folder.parent}' does not exist")
+
+        write_array_file(self._area_to_norm, path_to_folder / "area_to_norm.npy")
+
+        for gb in self._bands:
+            if not gb.has_normalization():
+                raise RuntimeError("""band {} is missing normalization
+                Assure GalaxyBand.apply_normalization() has been called prior""")
+                
+            write_array_file(gb.get_normalization(), path_to_folder / f"{gb.band}_normalization.npy")
+
     def get_csv_dict(self) -> dict:
         if self.pos_label == INDETERMINANT_VOTE_LABEL or self.neg_label == INDETERMINANT_VOTE_LABEL:
             raise RuntimeError("""pos/neg label can not be INDETERMINANT_VOTE_LABEL
-                Assure Galaxy.run() has been called prior.""")
+            Assure Galaxy.run() has been called prior.""")
         
-        if self.vote_count_neg == 0 and self.vote_count_pos:
+        if self.vote_count_neg == 0 and self.vote_count_pos == 0:
             raise RuntimeError("""no votes for either pos or neg side
             Assure Galaxy.run() has been called prior.""")
         
@@ -491,34 +538,3 @@ class Galaxy:
         # Write to csv:
         df = pd.DataFrame([data])
         df.to_csv(csv_path, index=False, na_rep='')
-
-    def save_normalizations(self, path_to_folder: str | Path):
-        """Save the normalized data"""
-
-        if not isinstance(path_to_folder, (str, Path)):
-            raise TypeError(f"given path_to_folder '{path_to_folder}' is not a str or Path")
-
-        if isinstance(path_to_folder, str):
-            path_to_folder = Path(path_to_folder)
-
-        if self._area_to_norm is None:
-            raise RuntimeError("""self._area_to_norm is NONE
-            Assure Galaxy.run() is called first""")
-        
-        if len(self._bands) == 0:
-            raise RuntimeError("""no bands""")
-
-        if path_to_folder.is_file():
-            raise ValueError(f"'{path_to_folder}' must be folder not file")
-
-        if not path_to_folder.parent.exists():
-            raise RuntimeError(f"folder '{path_to_folder.parent}' does not exist")
-
-        write_array_file(self._area_to_norm, path_to_folder / "area_to_norm.npy")
-
-        for gb in self._bands:
-            if not gb.has_normalization():
-                raise RuntimeError("""band {} is missing normalization
-                Assure GalaxyBand.apply_normalization() has been called prior""")
-            
-            write_array_file(gb.get_normalization(), path_to_folder / f"{gb.band}_normalization.npy")
