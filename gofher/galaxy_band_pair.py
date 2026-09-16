@@ -192,5 +192,5 @@ class GalaxyBandPair:
     def __str__(self):
         return f"{self._bluer_band.band}-{self._redder_band.band}"
 
-    #def __repr__(self):
-    #    return f"GalaxyBandPair({self._bluer_band.band}-{self._redder_band.band})"
+    def __repr__(self):
+        return f"GalaxyBandPair({self._bluer_band.band}-{self._redder_band.band})"

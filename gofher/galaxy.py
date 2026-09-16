@@ -1,6 +1,7 @@
 """Contains Galaxy class that determines the redder side of a galaxy"""
 from pathlib import Path
 
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.visualization import make_lupton_rgb
@@ -8,9 +9,20 @@ from astropy.visualization import make_lupton_rgb
 from gofher.gofher_parameters import GofherParameters, INDETERMINANT_VOTE_LABEL
 from gofher.galaxy_band import GalaxyBand
 from gofher.galaxy_band_pair import GalaxyBandPair
-from gofher.file_helper import read_fits
+from gofher.file_helper import read_fits, write_array_file, assure_folder_exists
 from gofher.utils import is_2d_bool_array, generate_band_pair_tuples
 from gofher.plot import plot_mask, plot_diff_histogram, plot_diff_image
+
+NAME_LABEL = "name"
+POS_SIDE_LABEL = "pos_side"
+NEG_SIDE_LABEL = "neg_side"
+POS_SIDE_COUNT_LABEL = "pos_side_count"
+NEG_SIDE_COUNT_LABEL = "neg_side_count"
+MAJORITY_CLASSIFICATION_LABEL = "majority_classification"
+
+BAND_REDDER_SIDE_LABEL = "redder_side"
+BAND_POS_MEAN_LABEL = "pos_side_mean"
+BAND_NEG_MEAN_LABEL = "neg_side_mean"
 
 class Galaxy:
     def __init__(self,
@@ -74,7 +86,7 @@ class Galaxy:
 
         return None
     
-    def construct_galaxy_band_from_fits(self, band: str, fits_path: str):
+    def construct_galaxy_band_from_fits(self, band: str, fits_path: str | Path):
         """Construct a galaxy_band from a fits file"""
 
         # Validate arguments:
@@ -87,13 +99,16 @@ class Galaxy:
         if band.count("-") > 0 or band.count("_") > 0:
             raise ValueError(f"band {band} can not have '-' or '_', reserved delimeters.")
 
-        if not isinstance(fits_path, str):
-            raise TypeError(f"fits_path {fits_path} must be str")
+        if not isinstance(fits_path, (str, Path)):
+            raise TypeError(f"fits_path {fits_path} must be st or Path")
 
-        if Path(fits_path).suffix != ".fits":
+        if isinstance(fits_path, str):
+            fits_path = Path(fits_path)
+
+        if fits_path.suffix != ".fits":
             raise ValueError(f"fits_path {fits_path} must be .fits file")
 
-        if not Path(fits_path).is_file():
+        if not fits_path.is_file():
             raise ValueError(f"fits_path {fits_path} does not exist")
 
         # Create new galaxy band and add it to the bands:
@@ -111,8 +126,10 @@ class Galaxy:
         elif self.gofher_params.shape != the_band_shape:
             raise ValueError(f"data shape {data.shape} does not match current shape of {self.gofher_params.shape}")
 
-        # Finally add the shape:
+        # Finally add the shape and return the band:
         self._bands.append(band)
+
+        return band
 
     def run(self, 
             bluer_to_redder_bands: list[str],
@@ -161,6 +178,10 @@ class Galaxy:
             raise TypeError(f"""fail_silently_on_missing_band {fail_silently_on_missing_band}
                 must be bool""")
 
+        if area_to_consider is not None and np.sum(area_to_consider) == 0:
+            raise ValueError("""area_to_consider provided has no True elements.
+            Verify area_to_consider is correct.""")
+
         # To avoid side effects when calling run() multiple times:
         #  * clear band_pairs
         #  * clear normalization:
@@ -198,6 +219,11 @@ class Galaxy:
         if area_to_consider is not None:
             area_to_norm = np.logical_and(area_to_norm,area_to_consider)
 
+        if np.sum(area_to_norm) == 0:
+            raise RuntimeError("""area_to_norm has no True pixels.
+            Verify each band valid_pixel_mask is correct and the 
+            intersection of them all have overlapping True pixels.""")
+
         # Cache area_to_norm for plotting later:
         self._area_to_norm = area_to_norm
 
@@ -211,6 +237,19 @@ class Galaxy:
         (pos_mask, neg_mask) = self.gofher_params.create_bisection_masks()
         pos_mask = np.logical_and(area_to_norm,pos_mask)
         neg_mask = np.logical_and(area_to_norm,neg_mask)
+
+        a = np.sum(pos_mask)
+        b = np.sum(neg_mask)
+
+        if np.sum(pos_mask) == 0:
+            raise RuntimeError("""pos_mask has no True pixels.
+            Verify area_to_norm and pos_mask are correct and have
+            an intersection of at least one common True pixel.""")
+
+        if np.sum(neg_mask) == 0:
+            raise RuntimeError("""neg_mask has no True pixels.
+            Verify area_to_norm and neg_mask are correct and have
+            an intersection of at least one common True pixel.""")
 
         # Assign labels to pos and neg sides:
         pos, neg = self.gofher_params.get_pos_neg_labels()
@@ -312,7 +351,7 @@ class Galaxy:
         return lupton_rgb
 
     def plot_figure(self, 
-                    save_path: str | None = None,
+                    save_path: str | Path | None = None,
                     dpi: int = 300):
         """Plot the difference image and histograms for all band pairs
         
@@ -322,8 +361,11 @@ class Galaxy:
             dpi: dpi for saved image
         """
         # Validate the parameters:
-        if save_path is not None and not isinstance(save_path,str):
+        if save_path is not None and not isinstance(save_path,(str, Path)):
             raise TypeError("save_path must be str if provided otherwise none")
+
+        if isinstance(save_path, str):
+            save_path = Path(save_path)
 
         if not isinstance(dpi,int):
             raise TypeError("dpi must be int")
@@ -384,7 +426,8 @@ class Galaxy:
             ax = axs[i+1]
 
             # Plot the difference image and add a color bar:
-            diff,ticks = plot_diff_image(ax[0],bp,area_to_norm,pixel_bounds)
+            diff,ticks = plot_diff_image(ax[0],bp,self.gofher_params,area_to_norm,pixel_bounds)
+
             fig.colorbar(diff, ax=ax[0], ticks=ticks)
 
             # Plot the histogram of the diff values:
@@ -397,3 +440,85 @@ class Galaxy:
         else:
             plt.show(fig)
 
+    def get_csv_dict(self) -> dict:
+        if self.pos_label == INDETERMINANT_VOTE_LABEL or self.neg_label == INDETERMINANT_VOTE_LABEL:
+            raise RuntimeError("""pos/neg label can not be INDETERMINANT_VOTE_LABEL
+                Assure Galaxy.run() has been called prior.""")
+        
+        if self.vote_count_neg == 0 and self.vote_count_pos:
+            raise RuntimeError("""no votes for either pos or neg side
+            Assure Galaxy.run() has been called prior.""")
+        
+        if len(self._band_pairs) == 0:
+            raise RuntimeError("""missing band pairs""")
+
+        # Collect gofher params data:
+        data = self.gofher_params.get_csv_dict()
+
+        # Collect data for each band pair:
+        for bp in self._band_pairs:
+            if bp.redder_side_label == INDETERMINANT_VOTE_LABEL:
+                raise RuntimeError(f"""redder_side_label for {str(bp)} is INDETERMINANT_VOTE_LABEL
+                Assure band_pair.classify() has been called prior""")
+
+            data[f"{str(bp)}_{BAND_REDDER_SIDE_LABEL}"] = bp.redder_side_label
+            data[f"{str(bp)}_{BAND_POS_MEAN_LABEL}"] = bp.pos_side_mean
+            data[f"{str(bp)}_{BAND_NEG_MEAN_LABEL}"] = bp.neg_side_mean
+
+        # Collect data for galaxy:
+        data[POS_SIDE_LABEL] = self.pos_label
+        data[NEG_SIDE_LABEL] = self.neg_label
+        data[POS_SIDE_COUNT_LABEL] = self.vote_count_pos
+        data[NEG_SIDE_COUNT_LABEL] = self.vote_count_neg
+        data[MAJORITY_CLASSIFICATION_LABEL] = self.majority_classification_label
+
+        return data
+
+    def output_to_csv(self, csv_path: str | Path):
+        """Write the gofher parameters to a csv file at csv_path."""
+        if not isinstance(csv_path, (str, Path)):
+            raise TypeError(f"given csv_path {csv_path} is not a str or Path")
+
+        if isinstance(csv_path, str):
+            csv_path = Path(csv_path)
+
+        if csv_path.suffix != ".csv":
+            raise ValueError(f"csv_path {csv_path} not be a .csv file")
+
+        # Gather data:
+        data = self.get_csv_dict()
+
+        # Write to csv:
+        df = pd.DataFrame([data])
+        df.to_csv(csv_path, index=False, na_rep='')
+
+    def save_normalizations(self, path_to_folder: str | Path):
+        """Save the normalized data"""
+
+        if not isinstance(path_to_folder, (str, Path)):
+            raise TypeError(f"given path_to_folder '{path_to_folder}' is not a str or Path")
+
+        if isinstance(path_to_folder, str):
+            path_to_folder = Path(path_to_folder)
+
+        if self._area_to_norm is None:
+            raise RuntimeError("""self._area_to_norm is NONE
+            Assure Galaxy.run() is called first""")
+        
+        if len(self._bands) == 0:
+            raise RuntimeError("""no bands""")
+
+        if path_to_folder.is_file():
+            raise ValueError(f"'{path_to_folder}' must be folder not file")
+
+        if not path_to_folder.parent.exists():
+            raise RuntimeError(f"folder '{path_to_folder.parent}' does not exist")
+
+        write_array_file(self._area_to_norm, path_to_folder / "area_to_norm.npy")
+
+        for gb in self._bands:
+            if not gb.has_normalization():
+                raise RuntimeError("""band {} is missing normalization
+                Assure GalaxyBand.apply_normalization() has been called prior""")
+            
+            write_array_file(gb.get_normalization(), path_to_folder / f"{gb.band}_normalization.npy")

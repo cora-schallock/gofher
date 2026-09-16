@@ -14,6 +14,7 @@ from gofher.utils import is_float_int, is_2d_bool_array, is_2d_same_shape_arrays
 BLACK_GRADIENT_PIXEL = np.array([0, 0, 0, 255], dtype=np.uint8)  # Opaque black
 POS_MASK_PIXEL = np.array([190, 67, 159, 255], dtype=np.uint8) #BE439F
 NEG_MASK_PIXEL = np.array([222, 158, 54, 255], dtype=np.uint8) #BE439F
+BISECTIONS_PIXEL = np.array([0, 255, 0, 255], dtype=np.uint8) # green
 BOUNDS_PIXEL = np.array([255, 0, 0, 255], dtype=np.uint8) # red
 CLEAR_GRADIENT_PIXEL = np.array([0, 0, 0, 0], dtype=np.uint8)   # Transparent clear
 
@@ -199,6 +200,9 @@ def plot_mask(ax: matplotlib.axes._axes.Axes,
     bisection_mask[np.logical_and(neg,area_to_norm)] = NEG_MASK_PIXEL
     ax.imshow(bisection_mask,alpha=0.25,origin='lower')
 
+    # Plot the bisection line:
+    ax.axline((gp.h,gp.k), slope=np.tan(gp.theta), color=BISECTIONS_PIXEL/255)
+
     # Title the plot:
     ax.set_title(f"{gp.name} masks")
 
@@ -264,6 +268,7 @@ def plot_diff_histogram(ax: matplotlib.axes._axes.Axes,
 
 def plot_diff_image(ax: matplotlib.axes._axes.Axes, 
                     bp: GalaxyBandPair,
+                    gp: GofherParameters,
                     area_to_norm: np.ndarray,
                     pixel_bounds: tuple[int] | None = None):
     """Plot the diff image
@@ -330,6 +335,9 @@ def plot_diff_image(ax: matplotlib.axes._axes.Axes,
     # Plot the diff image and return it to add colorbar later:
     diff = ax.imshow(diff_image,origin='lower',cmap='RdBu',norm=norm)
     ax.imshow(outside_mask,origin='lower')
+
+    # Plot the bisection line:
+    ax.axline((gp.h,gp.k), slope=np.tan(gp.theta), color=BISECTIONS_PIXEL/255)
 
     # Set title:
     ax.set_title(f"{str(bp)} diff")

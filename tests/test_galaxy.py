@@ -64,6 +64,79 @@ def test_galaxy_initalization():
     # Construct the galaxy:
     Galaxy(gofher_param)
 
+@pytest.mark.parametrize("band, expected_exception", [
+    ([], TypeError)
+])
+def test_has_band_exception(band, expected_exception):
+    """Test exceptions raised by Galaxy.has_band()"""
+
+    # Get test gofher param:
+    gofher_param = _get_test_galaxy_param()
+    
+    # Construct the galaxy:
+    the_galaxy = Galaxy(gofher_param)
+
+    # Check exception is raised:
+    with pytest.raises(expected_exception):
+        the_galaxy.has_band(band)
+
+def test_has_band():
+    """Test Galaxy.has_band()"""
+
+    # Specify test band and fits:
+    test_band = "g"
+    test_fits = _get_test_fits_path(test_band)
+
+    # Get test gofher param:
+    gofher_param = _get_test_galaxy_param()
+        
+    # Construct the galaxy:
+    the_galaxy = Galaxy(gofher_param)
+
+    # Verify the galaxy doesn't currently have band:
+    assert not the_galaxy.has_band(test_band)
+
+    # Add the test band to the galaxy:
+    the_galaxy.construct_galaxy_band_from_fits(test_band, test_fits)
+
+    # Verify the galaxy now has band:
+    assert the_galaxy.has_band(test_band)
+
+@pytest.mark.parametrize("band, expected_exception", [
+    ([], TypeError),
+    ("missingkey", KeyError)
+])
+def test_get_band_exception(band, expected_exception):
+    """Test exceptions raised by Galaxy.get_band()"""
+
+    # Get test gofher param:
+    gofher_param = _get_test_galaxy_param()
+    
+    # Construct the galaxy:
+    the_galaxy = Galaxy(gofher_param)
+
+    # Check exception is raised:
+    with pytest.raises(expected_exception):
+        the_galaxy.get_band(band)
+
+def test_get_band():
+    """Test Galaxy.get_band()"""
+
+    # Specify test band and fits:
+    test_band = "g"
+    test_fits = _get_test_fits_path(test_band)
+
+    # Get test gofher param:
+    gofher_param = _get_test_galaxy_param()
+        
+    # Construct the galaxy:
+    the_galaxy = Galaxy(gofher_param)
+
+    # Add the test band to the galaxy:
+    the_band = the_galaxy.construct_galaxy_band_from_fits(test_band, test_fits)
+
+    assert the_galaxy.get_band(test_band) == the_band
+
 @pytest.mark.parametrize("band, fits_path, expected_exception", [
     ([],_get_test_fits_path("g"), TypeError),
     ("",_get_test_fits_path("g"), ValueError),
@@ -127,6 +200,82 @@ def test_run_exceptions(bands, f, area, fail_silently, expected_exception):
                        area_to_consider=area,
                        fail_silently_on_missing_band=fail_silently)
 
+def test_run_area_to_consider_exception():
+    """Verify the exceptions raised in Galaxy.run() if area_to_consider has no Pixels"""
+    # Get test gofher param:
+    gofher_param = _get_test_galaxy_param()
+        
+    # Construct the galaxy:
+    the_galaxy = Galaxy(gofher_param)
+    
+    # Add g and r band fits:
+    the_band = the_galaxy.construct_galaxy_band_from_fits("g",_get_test_fits_path("g"))
+    the_galaxy.construct_galaxy_band_from_fits("r",_get_test_fits_path("r"))
+
+    # Get shape of fits
+    shape = the_band.data.shape
+
+    # If area_to_consider has all Falses, it raises a ValueError exception:
+    no_area = np.zeros(shape,bool)
+    with pytest.raises(ValueError):
+        the_galaxy.run(bluer_to_redder_bands=["g","r"],
+                       sparcfire_bulge_disk_f=0.5,
+                       area_to_consider=no_area,
+                       fail_silently_on_missing_band=False)
+
+    # If area_to_consider is passed in with at least one True
+    #   but shares no intersecting True pixels ellipse mask/ valid mask
+    #   it reaises a RunTime exception:
+    no_area[0,0] = True
+    with pytest.raises(RuntimeError):
+        the_galaxy.run(bluer_to_redder_bands=["g","r"],
+                       sparcfire_bulge_disk_f=0.5,
+                       area_to_consider=no_area,
+                       fail_silently_on_missing_band=False)
+
+    # Now we will in all True to area_to_consider and it should work:
+    area = np.ones(shape,bool)
+    the_galaxy.run(bluer_to_redder_bands=["g","r"],
+                   sparcfire_bulge_disk_f=0.5,
+                   area_to_consider=area,
+                   fail_silently_on_missing_band=False)
+
+def test_run_no_pos_neg_area_exception():
+    """Verify an exception is raised in pos mask or neg mask has no area"""
+
+    sparcfire_bulge_disk = 0.5
+
+    # Get test gofher param:
+    gofher_param = _get_test_galaxy_param()
+           
+    # Construct the galaxy:
+    the_galaxy = Galaxy(gofher_param)
+    the_galaxy.construct_galaxy_band_from_fits("g",_get_test_fits_path("g"))
+    the_galaxy.construct_galaxy_band_from_fits("r",_get_test_fits_path("r"))
+
+    gofher_param.calculate_from_sparcfire(sparcfire_bulge_disk)
+    pos_mask, neg_mask = gofher_param.create_bisection_masks()
+
+    # This should work:
+    the_mask = np.logical_or(pos_mask, neg_mask)
+    the_galaxy.run(bluer_to_redder_bands=["g","r"],
+                   sparcfire_bulge_disk_f=sparcfire_bulge_disk,
+                   area_to_consider=the_mask)
+
+    # When area_to_consider shares no intersecting True pixels with pos side
+    #   (i.e. in this toy example we use neg_mask) it raises a Runtime Exception
+    with pytest.raises(RuntimeError):
+        the_galaxy.run(bluer_to_redder_bands=["g","r"],
+                       sparcfire_bulge_disk_f=sparcfire_bulge_disk,
+                       area_to_consider=neg_mask)
+
+    # When area_to_consider shares no intersecting True pixels with neg side
+    #   (i.e. in this toy example we use pos_mask) it raises a Runtime Exception
+    with pytest.raises(RuntimeError):
+        the_galaxy.run(bluer_to_redder_bands=["g","r"],
+                       sparcfire_bulge_disk_f=sparcfire_bulge_disk,
+                       area_to_consider=pos_mask)
+
 def test_run_silent_fail():
     """Test fail_silently_on_missing_band parameter in Galaxy.run()"""
     # The parameters for the test:
@@ -182,7 +331,5 @@ def test_run():
     # Run
     the_galaxy.run(bluer_to_redder_bands=bands,
                    sparcfire_bulge_disk_f=f)
-
-
-#TODO: has_band, get_band, make_lupton_rgb, plot_figure
     
+#TODO: make_lupton_rgb, plot_figure, save_normalizations, csv_dict, output_to_csv

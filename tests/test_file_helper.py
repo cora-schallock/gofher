@@ -73,7 +73,8 @@ def test_read_fits():
 
 @pytest.mark.parametrize("array, path, expected_exception", [
     ([], "example.npy", ValueError),
-    (_generate_random_array(), "not_npy.txt", ValueError)
+    (_generate_random_array(), "not_npy.txt", ValueError),
+    (_generate_random_array(), Path.cwd(), ValueError)
 ])
 def test_write_array_file_exceptions(array, path, expected_exception):
     """Test exceptions expected from write_array_file"""
@@ -99,7 +100,8 @@ def test_write_array_file():
 @pytest.mark.parametrize("path, expected_exception", [
     ([], ValueError),
     ("fake_file.npy", FileNotFoundError),
-    ("tests/test_utils.py", ValueError)
+    ("tests/test_utils.py", ValueError),
+    (Path.cwd(), ValueError)
 ])
 def test_read_array_file_exceptions(path, expected_exception):
     """Test exceptions expected from read_array_file"""
@@ -133,8 +135,9 @@ def test_read_array_file():
     Path.unlink(arr_path)
 
 @pytest.mark.parametrize("path, expected_exception", [
-    ([], ValueError),
-    ("", ValueError)
+    ([], TypeError),
+    ("", ValueError),
+    (Path("test.py"), ValueError)
 ])
 def test_assure_folder_exists_exceptions(path, expected_exception):
     """Test exceptions expected from assure_folder_exists"""

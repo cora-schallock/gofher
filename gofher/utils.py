@@ -8,11 +8,11 @@ from itertools import combinations
 import numpy as np
 
 def is_int(value) -> bool:
-    """Checks if the value is an int or numpy equivalent"""
-    if isinstance(value, int):
+    """Checks if the value is a int or numpy equivalent"""
+    if isinstance(value, int) and np.isfinite(value):
         return True
 
-    if isinstance(value, np.integer) and np.isscalar(value):
+    if isinstance(value, np.integer) and np.isscalar(value) and np.isfinite(value):
         return True
 
     return False
@@ -20,11 +20,11 @@ def is_int(value) -> bool:
 def is_float_int(value) -> bool:
     """Checks if the value is a float/int or numpy equivalent"""
     # Verify is python float or int:
-    if isinstance(value, (float,int)):
+    if isinstance(value, (float,int)) and np.isfinite(value):
         return True
     
     # Verify is numpy int/gloat and a single value (i.e. not array):
-    if isinstance(value,(np.integer, np.floating)) and np.isscalar(value):
+    if isinstance(value,(np.integer, np.floating)) and np.isscalar(value) and np.isfinite(value):
         return True
     
     return False

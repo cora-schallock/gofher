@@ -11,7 +11,10 @@ import numpy as np
 
 from gofher.gofher_parameters import (
     GofherParameters,
-    read_gofher_parameters_from_csv
+    get_gofher_parameters_from_dict,
+    read_gofher_parameters_from_csv,
+    SHAPE_COL_KEY,
+    SHAPE_ROW_KEY
 )
 
 from gofher.utils import (
@@ -106,8 +109,6 @@ def test_get_pos_neg_labels_excpetion():
     gp.theta = np.inf
     with pytest.raises(ValueError):
         gp.get_pos_neg_labels()
-
-
 
 @pytest.mark.parametrize(
     "theta, pos, neg",
@@ -476,7 +477,7 @@ def create_near_major_and_minor_axis_mask():
     [
         (1, TypeError),
         ({}, TypeError),
-        ("not_a_csv.txt", ValueError)
+        (Path("not_a_csv.txt"), ValueError)
     ]
 )
 def test_output_to_csv_exceptions(csv_path, expected_exception):
@@ -510,6 +511,73 @@ def test_output_to_csv():
     # Cleanup the test file path:
     Path.unlink(test_csv_path)
 
+@pytest.mark.parametrize(
+    "the_dict, expected_exception",
+    [
+        ([], TypeError),
+        ({}, ValueError)
+    ]
+)
+def test_get_gofher_parameters_from_dict_exceptions(the_dict, expected_exception):
+    """Tests exceptions expected from read_gofher_parameters_from_csv"""
+    with pytest.raises(expected_exception):
+        get_gofher_parameters_from_dict(the_dict)
+
+def test_get_gofher_parameters_from_dict_missing_wrong_type_exceptions():
+    """Test get_gofher_parameters_from_dict dict missing a required field"""
+
+    # Get the dict:
+    gofher_params_csv_path = _get_test_gofher_params_csv_path()
+    gofher_params = read_gofher_parameters_from_csv(gofher_params_csv_path)
+
+    # Manually set the shape for this test:
+    gofher_params.shape = (419, 419)
+
+    # Get the actual correct dict:
+    the_dict = gofher_params.get_csv_dict()
+
+    # Iterate through dict:
+    for each_key, _ in the_dict.items():
+        # Remove the key from dict:
+        #   Programmer Note: Copy used to avoid iteration issue
+
+        missing_key_dict = the_dict.copy()
+        missing_key_dict.pop(each_key)
+
+        # A key is missing so it should raise a KeyError:
+        with pytest.raises(KeyError):
+            get_gofher_parameters_from_dict(missing_key_dict)
+
+        # Add the key back but with wrong type, should raise TypeError now:
+        missing_key_dict[each_key] = []
+        with pytest.raises(ValueError):
+            get_gofher_parameters_from_dict(missing_key_dict)
+
+def test_get_gofher_parameters_from_dict_shape_exception():
+    """Test get_gofher_parameters_from_dict dict hase shape that is invalid"""
+
+    # Get the dict:
+    gofher_params_csv_path = _get_test_gofher_params_csv_path()
+    gofher_params = read_gofher_parameters_from_csv(gofher_params_csv_path)
+    
+    # Manually set the shape for this test:
+    gofher_params.shape = (419, 419)
+    
+    # Get the actual correct dict which should work:
+    the_dict = gofher_params.get_csv_dict()
+    get_gofher_parameters_from_dict(the_dict)
+
+    # Now make the row invalid and it should raise an exception:
+    gofher_params.shape = (-1, 419)
+    the_dict = gofher_params.get_csv_dict()
+    with pytest.raises(ValueError):
+        get_gofher_parameters_from_dict(the_dict)
+
+    # Now make the col invalid and it should raise an exception:
+    gofher_params.shape = (419, -1)
+    the_dict = gofher_params.get_csv_dict()
+    with pytest.raises(ValueError):
+        get_gofher_parameters_from_dict(the_dict)
 
 @pytest.mark.parametrize(
     "csv_path, expected_exception",
@@ -523,7 +591,6 @@ def test_read_gofher_parameters_exceptions(csv_path, expected_exception):
     """Tests exceptions expected from read_gofher_parameters_from_csv"""
     with pytest.raises(expected_exception):
         read_gofher_parameters_from_csv(csv_path)
-
 
 def test_read_gofher_parameters():
     """Test read_gofher_parameters_from_csv"""

@@ -490,17 +490,9 @@ class GofherParameters:
         
         # Create near minor axis mask:
         return create_near_minor_axis_mask(sweep,self.h,self.k,self.theta,self.shape)
-    
-    def output_to_csv(self, csv_path: str):
-        """Write the gofher parameters to a csv file at csv_path."""
 
-        if not isinstance(csv_path, str):
-            raise TypeError(f"given csv_path {csv_path} is not a str")
-
-        if Path(csv_path).suffix != ".csv":
-            raise ValueError(f"csv_path {csv_path} not be a .csv file")
-
-        # Collect data to write:
+    def get_csv_dict(self) -> dict:
+        # Collect data:
         data = {
             NAME_KEY: self.name,
             REF_BAND_KEY: self.ref_band,
@@ -522,12 +514,104 @@ class GofherParameters:
             SPARCFIRE_BULGE_DISK_F_KEY: self.sparcfire_bulge_disk_f
         }
 
+        return data
+    
+    def output_to_csv(self, csv_path: str | Path):
+        """Write the gofher parameters to a csv file at csv_path."""
+
+        if not isinstance(csv_path, (str,Path)):
+            raise TypeError(f"given csv_path {csv_path} is not a str or Path")
+
+        if isinstance(csv_path,Path):
+            csv_path = Path(csv_path)
+
+        if Path(csv_path).suffix != ".csv":
+            raise ValueError(f"csv_path {csv_path} not be a .csv file")
+
+        if not Path(csv_path).parent.exists():
+            raise RuntimeError(f"folder '{Path(csv_path).parent}' does not exist")
+
+        # Gather data to write:
+        data = self.get_csv_dict()
+
         # Write to csv:
         df = pd.DataFrame([data])
         df.to_csv(csv_path, index=False, na_rep='')
-    
 
-def read_gofher_parameters_from_csv(csv_path: str
+def get_gofher_parameters_from_dict(the_dict: dict) -> GofherParameters:
+    """Create a GofherParameters object using data from dictionary"""
+
+    # Validate input:
+    if not isinstance(the_dict, dict):
+        raise TypeError("the_dict must be dict")
+
+    if len(the_dict) == 0:
+        raise ValueError("the_dict can not be empty dict")
+
+    the_gofher_params = GofherParameters()
+    
+    # Validate name and ref_band:
+    for col in [NAME_KEY,REF_BAND_KEY]:
+        if not col in the_dict:
+            raise KeyError(f"Missing required column {col}")
+            
+        if not isinstance(the_dict[col],str):
+            raise ValueError(f"Column {col} must be a string")
+            
+    # Set name and ref_band:
+    the_gofher_params.name = the_dict[NAME_KEY]
+    the_gofher_params.ref_band = the_dict[REF_BAND_KEY]
+    
+    # Validate shape: 
+    for col in [SHAPE_ROW_KEY,SHAPE_COL_KEY]:
+        if not col in the_dict:
+                raise KeyError(f"Missing required column {col}")
+            
+        if not is_int(the_dict[col]) or the_dict[col] < 0:
+            raise ValueError(f"Column {col} must be a int > 0")
+            
+    # Set shape:
+    the_gofher_params.shape = (int(the_dict[SHAPE_ROW_KEY]),int(the_dict[SHAPE_COL_KEY]))
+    
+    # Validate ellipse parameters (a,b,h,k,theta): 
+    for col in ELLIPSE_DATA_COLUMNS:
+        if not col in the_dict:
+            raise KeyError(f"Missing required column {col}")
+
+        if not is_float_int(the_dict[col]):
+            raise ValueError(f"Column {col} must be a float/int or numpy equivalent")
+            
+    # Set ellipse parameters (a,b,h,k,theta): 
+    the_gofher_params.a = float(the_dict[A_KEY])
+    the_gofher_params.b = float(the_dict[B_KEY])
+    the_gofher_params.h = float(the_dict[H_KEY])
+    the_gofher_params.k = float(the_dict[K_KEY])
+    the_gofher_params.theta = float(the_dict[THETA_KEY])
+    
+    #TODO: if not using sparcfire, skip part below:
+        
+    # Validate sparcfire parameters:
+    for col in SPARCFIRE_DATA_COLUMNS:
+        if not col in the_dict:
+            raise KeyError(f"Missing required sparcfire column {col}")
+                
+        if not is_float_int(the_dict[col]):
+            raise ValueError(f"Column {col} must be a float/int or numpy equivalent")
+            
+    # Set sparcfire parameters:
+    the_gofher_params.sparcfire_input_c = float(the_dict[SPARCFIRE_INPUT_C_KEY])
+    the_gofher_params.sparcfire_input_r = float(the_dict[SPARCFIRE_INPUT_R_KEY])
+    the_gofher_params.sparcfire_disk_maj_axis_len = float(the_dict[SPARCFIRE_DISK_MAJ_AXIS_LEN_KEY])
+    the_gofher_params.sparcfire_disk_min_axis_len = float(the_dict[SPARCFIRE_DISK_MIN_AXIS_LEN_KEY])
+    the_gofher_params.sparcfire_disk_maj_axis_angle = float(the_dict[SPARCFIRE_DISK_MAJ_AXIS_ANGLE_KEY])
+    the_gofher_params.sparcfire_bulge_maj_axis_len = float(the_dict[SPARCFIRE_BULGE_MAJ_AXIS_LEN_KEY])
+    the_gofher_params.sparcfire_bulge_axis_ratio = float(the_dict[SPARCFIRE_BULGE_AXIS_RATIO_KEY])
+    the_gofher_params.sparcfire_bulge_axis_angle = float(the_dict[SPARCFIRE_BULGE_AXIS_ANGLE_KEY])
+    the_gofher_params.sparcfire_bulge_disk_f = float(the_dict[SPARCFIRE_BULGE_DISK_F_KEY])
+
+    return the_gofher_params
+
+def read_gofher_parameters_from_csv(csv_path: str | Path
                                     ) -> GofherParameters:
     """Given a GofherParaemeters csv create a GofherParaemeters 
     
@@ -538,79 +622,21 @@ def read_gofher_parameters_from_csv(csv_path: str
         GofherParameters with values from the csv
     """
 
-    if not isinstance(csv_path, str):
-        raise TypeError(f"csv_path must be str, given {csv_path}")
+    if not isinstance(csv_path, (str, Path)):
+        raise TypeError(f"csv_path must be str or Path, given {csv_path}")
 
-    if Path(csv_path).suffix != ".csv":
+    if isinstance(csv_path, str):
+        csv_path = Path(csv_path)
+
+    if csv_path.suffix != ".csv":
         raise ValueError(f"csv_path must be .csv file, given {csv_path}")
 
-    if not Path.is_file(csv_path):
+    if not csv_path.is_file():
         raise ValueError(f"given csv_path {csv_path} does not exist")
 
     df = pd.read_csv(csv_path, na_values=[""])
-    the_galaxy = df.iloc[0]
-    has_columns = the_galaxy.index.tolist()
-
-    the_gofher_params = GofherParameters()
-
-    # Validate name and ref_band:
-    for col in [NAME_KEY,REF_BAND_KEY]:
-        if not col in has_columns:
-            raise ValueError(f"Missing required column {col}")
-        
-        if not isinstance(the_galaxy[col],str):
-            raise ValueError(f"Column {col} must be a string")
-        
-    # Set name and ref_band:
-    the_gofher_params.name = the_galaxy[NAME_KEY]
-    the_gofher_params.ref_band = the_galaxy[REF_BAND_KEY]
-
-    # Validate shape: 
-    for col in [SHAPE_ROW_KEY,SHAPE_COL_KEY]:
-        if not col in has_columns:
-            raise ValueError(f"Missing required column {col}")
-        
-        if not is_int(the_galaxy[col]) or the_galaxy[col] < 0:
-            raise ValueError(f"Column {col} must be a int > 0")
-        
-    # Set shape:
-    the_gofher_params.shape = (the_galaxy[SHAPE_ROW_KEY],the_galaxy[SHAPE_COL_KEY])
-
-    # Validate ellipse parameters (a,b,h,k,theta): 
-    for col in ELLIPSE_DATA_COLUMNS:
-        if not col in has_columns:
-            raise ValueError(f"Missing required column {col}")
-        
-        if not is_float_int(the_galaxy[col]):
-            raise ValueError(f"Column {col} must be a float/int or numpy equivalent")
-        
-    # Set ellipse parameters (a,b,h,k,theta): 
-    the_gofher_params.a = the_galaxy[A_KEY]
-    the_gofher_params.b = the_galaxy[B_KEY]
-    the_gofher_params.h = the_galaxy[H_KEY]
-    the_gofher_params.k = the_galaxy[K_KEY]
-    the_gofher_params.theta = the_galaxy[THETA_KEY]
-
-    #TODO: if not using sparcfire, skip part below:
-    
-    # Validate sparcfire parameters:
-    for col in SPARCFIRE_DATA_COLUMNS:
-        if not col in has_columns:
-            raise ValueError(f"Missing required sparcfire column {col}")
-            
-        if not is_float_int(the_galaxy[col]):
-            raise ValueError(f"Column {col} must be a float/int or numpy equivalent")
-        
-    # Set sparcfire parameters:
-    the_gofher_params.sparcfire_input_c = the_galaxy[SPARCFIRE_INPUT_C_KEY]
-    the_gofher_params.sparcfire_input_r = the_galaxy[SPARCFIRE_INPUT_R_KEY]
-    the_gofher_params.sparcfire_disk_maj_axis_len = the_galaxy[SPARCFIRE_DISK_MAJ_AXIS_LEN_KEY]
-    the_gofher_params.sparcfire_disk_min_axis_len = the_galaxy[SPARCFIRE_DISK_MIN_AXIS_LEN_KEY]
-    the_gofher_params.sparcfire_disk_maj_axis_angle = the_galaxy[SPARCFIRE_DISK_MAJ_AXIS_ANGLE_KEY]
-    the_gofher_params.sparcfire_bulge_maj_axis_len = the_galaxy[SPARCFIRE_BULGE_MAJ_AXIS_LEN_KEY]
-    the_gofher_params.sparcfire_bulge_axis_ratio = the_galaxy[SPARCFIRE_BULGE_AXIS_RATIO_KEY]
-    the_gofher_params.sparcfire_bulge_axis_angle = the_galaxy[SPARCFIRE_BULGE_AXIS_ANGLE_KEY]
-    the_gofher_params.sparcfire_bulge_disk_f = the_galaxy[SPARCFIRE_BULGE_DISK_F_KEY]
+    the_dict = df.iloc[0].to_dict()
+    the_gofher_params = get_gofher_parameters_from_dict(the_dict)
         
     return the_gofher_params
 
