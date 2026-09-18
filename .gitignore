@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# User added
+.DS_Store
+
+# Module specific
+example/test_galaxy_output
