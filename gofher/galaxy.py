@@ -185,11 +185,18 @@ class Galaxy:
         # To avoid side effects when calling run() multiple times:
         #  * clear band_pairs
         #  * clear normalization:
+        #  * clear any voting/ classification stats:
         self._band_pairs = []
         self._area_to_norm = None
         for band in self._bands:
             band.clear_normalization()
 
+        self.majority_classification_label = INDETERMINANT_VOTE_LABEL
+        self.pos_label = INDETERMINANT_VOTE_LABEL
+        self.neg_label = INDETERMINANT_VOTE_LABEL
+        self.vote_count_pos = 0
+        self.vote_count_neg = 0
+        
         # Find the bands that this galaxy has:
         galaxy_has_bands: list[GalaxyBand] = []
         for band in bluer_to_redder_bands:
@@ -405,7 +412,7 @@ class Galaxy:
         # each following row: one row per waveband
         #   left: on the diff image
         #   right: the histogram of diff values split between pos/neg sides
-        gs_kw = dict(width_ratios=[2,3], height_ratios=[2,2,2,2,2,2,2])
+        gs_kw = dict(width_ratios=[2,3], height_ratios=[2] + [2]*len(self._band_pairs))
         fig, axs = plt.subplots(len(self._band_pairs)+1,2,figsize=(12.5,36),gridspec_kw=gs_kw)
 
         # Color image:
