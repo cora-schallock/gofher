@@ -2,15 +2,16 @@
 
 The script is run using the commend: python -m pytest
 """
+import uuid
+
 from pathlib import Path
 import numpy as np
-import uuid
 
 import pytest
 
 from gofher.file_helper import read_array_file
 from gofher.galaxy import Galaxy
-from gofher.gofher_parameters import GofherParameters
+from gofher.gofher_parameters import GofherParameters, INDETERMINANT_VOTE_LABEL
 from gofher.sparcfire import gofher_params_from_sparcfire_csv
 from gofher.utils import is_float_int_array, is_2d_bool_array
 
@@ -47,8 +48,11 @@ def _get_test_galaxy_param() -> GofherParameters:
 
     return gofher_params[0]
 
-def _build_test_galaxy(bands: list[str] = ["g", "r"],
+def _build_test_galaxy(bands: list[str] = None,
                        run_with_default_args: bool = True) -> Galaxy:
+    if bands is None:
+        bands = ["g","r"]
+    
     # Get test gofher param:
     gofher_param = _get_test_galaxy_param()
 
@@ -365,9 +369,9 @@ def test_plot_figure_exception(save_path, dpi, expected_exception):
     with pytest.raises(expected_exception):
         the_galaxy.plot_figure(save_path, dpi)
 
-def test_plot_figure_runtime_exception():
+def test_plot_figure_no_run_exception(tmp_path: Path):
     # Specify a test file path for plots:
-    random_file_path = Path(TMP_DIR / f"{uuid.uuid4()}.png")
+    random_file_path = tmp_path / f"{uuid.uuid4()}.png"
                     
     # Construct the galaxy and bands but DON'T RUN:
     the_galaxy = _build_test_galaxy(run_with_default_args=False)
@@ -376,34 +380,44 @@ def test_plot_figure_runtime_exception():
     with pytest.raises(RuntimeError):
         the_galaxy.plot_figure(random_file_path)
 
-    # This should work:
-    the_galaxy.run(["g","r"])
-    the_galaxy.plot_figure(random_file_path)
-    assert random_file_path.exists()
+def test_plot_figure_missing_ref_band_exception(tmp_path: Path):
+    # Specify a test file path for plots:
+    random_file_path = tmp_path / f"{uuid.uuid4()}.png"
+                        
+    # Construct the galaxy and bands and run:
+    the_galaxy = _build_test_galaxy()
 
-    # Cleanup output file:
-    random_file_path.unlink()
-
-    # Now if the ref band is missing it should raise a RuntimeError:
+    # Set the ref_band to a non existant band:
     the_galaxy.gofher_params.ref_band = "missingband"
+
+    # Since the ref band doesn't exist, plotting should raise RuntimeError:
     with pytest.raises(RuntimeError):
         the_galaxy.plot_figure(random_file_path)
 
-    # This should work:
-    the_galaxy.gofher_params.ref_band = "g"
-    the_galaxy.plot_figure(random_file_path)
-    assert random_file_path.exists()
+def test_plot_figure_missing_area_to_norm(tmp_path: Path):
+    # Specify a test file path for plots:
+    random_file_path = tmp_path / f"{uuid.uuid4()}.png"
 
-    # Cleanup output file:
-    random_file_path.unlink()
+    # Construct the galaxy and bands and run:
+    the_galaxy = _build_test_galaxy()
 
-    # Now if the area_to_norm is missing it should raise a RuntimeError:
+    # Set the area_to_norm to be non existant:
     the_galaxy._area_to_norm = None
+
+    # Since area_to_norm is missing, plotting should raise RuntimeError:
     with pytest.raises(RuntimeError):
         the_galaxy.plot_figure(random_file_path)
 
-    # Verify no output file (since last test failed):
-    assert not random_file_path.exists()
+def test_plot_figure(tmp_path: Path):
+    # Generate random csv path:
+    random_figure_path = tmp_path / f"{uuid.uuid4()}.png"
+
+    # Construct the galaxy and bands and run:
+    the_galaxy = _build_test_galaxy()
+
+    # Plot the figure and verify it exists:
+    the_galaxy.plot_figure(random_figure_path)
+    assert random_figure_path.exists()
 
 @pytest.mark.parametrize("path_to_folder, expected_exception", [
     ([], TypeError),
@@ -457,9 +471,9 @@ def test_save_normalizations_no_area_to_norm_exception(tmp_path: Path):
         the_galaxy.save_normalizations(random_folder)
     assert len(list(random_folder.iterdir())) == 0 # Verify it didn't create files
 
-def test_save_normalizations():
+def test_save_normalizations(tmp_path: Path):
     # Create a random folder for tests:
-    random_folder = Path(TMP_DIR / f"{uuid.uuid4()}")
+    random_folder = Path(tmp_path / f"{uuid.uuid4()}")
     Path.mkdir(random_folder)
 
     # Build a galaxy with g and r bands, run it, and save the normalization:
@@ -493,16 +507,14 @@ def test_save_normalizations():
     # Verify the data is what is expected:
     #   For boolean mask, must be exactly the same
     #   For float/int mask, sum of residual must be less than RESIDUAL_TOLERENCE
-    area_redisual = np.logical_or(area_data, test_galaxy._area_to_norm)
-    assert np.sum(area_redisual) == 0
+    area_redisual = np.sum(np.logical_xor(area_data, test_galaxy._area_to_norm))
+    assert area_redisual == 0
 
     g_residual = np.sum(np.abs(g_data - test_galaxy.get_band("g").get_normalization()))
     assert np.sum(g_residual) < RESIDUAL_TOLERANCE
 
     r_residual = np.sum(np.abs(r_data - test_galaxy.get_band("r").get_normalization()))
     assert np.sum(r_residual) < RESIDUAL_TOLERANCE
-
-    random_folder.rmdir()
 
 def test_get_csv_dict_exceptions():
     # Build a galaxy with bands but DON'T RUN it:
@@ -540,22 +552,38 @@ def test_get_csv_dict_exceptions():
     test_galaxy.get_csv_dict()
 
     # Now we will clear a normalization/ classification and it should raise a RunTimeError
-    test_galaxy._band_pairs[0].redder_side_label = INDETERMINANT_VOTE_LABE
+    test_galaxy._band_pairs[0].redder_side_label = INDETERMINANT_VOTE_LABEL
     with pytest.raises(RuntimeError):
         test_galaxy.get_csv_dict()
 
 
 def test_get_csv_dict():
-    # Build a galaxy with bands and run it
+    # Build a galaxy with bands and run it:
     test_galaxy = _build_test_galaxy()
     the_dict = test_galaxy.get_csv_dict()
 
     assert isinstance(the_dict, dict)
     assert len(the_dict) > 0
 
+@pytest.mark.parametrize("csv_path, expected_exception", [
+    ([], TypeError),
+    (Path("file.py"), ValueError)
+])
+def test_output_to_csv_exceptions(csv_path, expected_exception):
+    # Build a galaxy with bands and run it:
+    test_galaxy = _build_test_galaxy()
 
-    
+    # Verify the exception is raised:
+    with pytest.raises(expected_exception):
+        test_galaxy.output_to_csv(csv_path)
 
-    
+def test_output_to_csv(tmp_path: Path):
+    # generate random csv path:
+    random_csv_path = tmp_path / f"{uuid.uuid4()}.csv"
 
-#TODO: output_to_csv, test plot output
+    # Build a galaxy with bands and run it:
+    test_galaxy = _build_test_galaxy()
+
+    # Output to csv and verify it exists:
+    test_galaxy.output_to_csv(random_csv_path)
+    assert random_csv_path.exists()
