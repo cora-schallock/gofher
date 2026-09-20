@@ -182,7 +182,7 @@ class GofherParameters:
 
         diff = self.sparcfire_disk_maj_axis_len - self.sparcfire_bulge_maj_axis_len
         self.a = self.sparcfire_bulge_maj_axis_len + diff*bulge_disk_f
-        self.b = self.sparcfire_disk_min_axis_len * (self.a/self.sparcfire_disk_maj_axis_len) #TODO: fix this!
+        self.b = self.sparcfire_disk_min_axis_len * (self.a/self.sparcfire_disk_maj_axis_len)
 
         self.a *= 0.5
         self.b *= 0.5
@@ -492,6 +492,7 @@ class GofherParameters:
         return create_near_minor_axis_mask(sweep,self.h,self.k,self.theta,self.shape)
 
     def get_csv_dict(self) -> dict:
+        """Get a dictionary containning the data from gofher parameters"""
         # Collect data:
         data = {
             NAME_KEY: self.name,
@@ -565,7 +566,7 @@ def get_gofher_parameters_from_dict(the_dict: dict) -> GofherParameters:
     # Validate shape: 
     for col in [SHAPE_ROW_KEY,SHAPE_COL_KEY]:
         if not col in the_dict:
-                raise KeyError(f"Missing required column {col}")
+            raise KeyError(f"Missing required column {col}")
             
         if not is_int(the_dict[col]) or the_dict[col] < 0:
             raise ValueError(f"Column {col} must be a int > 0")
@@ -588,7 +589,7 @@ def get_gofher_parameters_from_dict(the_dict: dict) -> GofherParameters:
     the_gofher_params.k = float(the_dict[K_KEY])
     the_gofher_params.theta = float(the_dict[THETA_KEY])
     
-    #TODO: if not using sparcfire, skip part below:
+    # Programmer Note: If not using sparcfire, skip part below:
         
     # Validate sparcfire parameters:
     for col in SPARCFIRE_DATA_COLUMNS:
@@ -599,15 +600,24 @@ def get_gofher_parameters_from_dict(the_dict: dict) -> GofherParameters:
             raise ValueError(f"Column {col} must be a float/int or numpy equivalent")
             
     # Set sparcfire parameters:
-    the_gofher_params.sparcfire_input_c = float(the_dict[SPARCFIRE_INPUT_C_KEY])
-    the_gofher_params.sparcfire_input_r = float(the_dict[SPARCFIRE_INPUT_R_KEY])
-    the_gofher_params.sparcfire_disk_maj_axis_len = float(the_dict[SPARCFIRE_DISK_MAJ_AXIS_LEN_KEY])
-    the_gofher_params.sparcfire_disk_min_axis_len = float(the_dict[SPARCFIRE_DISK_MIN_AXIS_LEN_KEY])
-    the_gofher_params.sparcfire_disk_maj_axis_angle = float(the_dict[SPARCFIRE_DISK_MAJ_AXIS_ANGLE_KEY])
-    the_gofher_params.sparcfire_bulge_maj_axis_len = float(the_dict[SPARCFIRE_BULGE_MAJ_AXIS_LEN_KEY])
-    the_gofher_params.sparcfire_bulge_axis_ratio = float(the_dict[SPARCFIRE_BULGE_AXIS_RATIO_KEY])
-    the_gofher_params.sparcfire_bulge_axis_angle = float(the_dict[SPARCFIRE_BULGE_AXIS_ANGLE_KEY])
-    the_gofher_params.sparcfire_bulge_disk_f = float(the_dict[SPARCFIRE_BULGE_DISK_F_KEY])
+    the_gofher_params.sparcfire_input_c = float(
+        the_dict[SPARCFIRE_INPUT_C_KEY])
+    the_gofher_params.sparcfire_input_r = float(
+        the_dict[SPARCFIRE_INPUT_R_KEY])
+    the_gofher_params.sparcfire_disk_maj_axis_len = float(
+        the_dict[SPARCFIRE_DISK_MAJ_AXIS_LEN_KEY])
+    the_gofher_params.sparcfire_disk_min_axis_len = float(
+        the_dict[SPARCFIRE_DISK_MIN_AXIS_LEN_KEY])
+    the_gofher_params.sparcfire_disk_maj_axis_angle = float(
+        the_dict[SPARCFIRE_DISK_MAJ_AXIS_ANGLE_KEY])
+    the_gofher_params.sparcfire_bulge_maj_axis_len = float(
+        the_dict[SPARCFIRE_BULGE_MAJ_AXIS_LEN_KEY])
+    the_gofher_params.sparcfire_bulge_axis_ratio = float(
+        the_dict[SPARCFIRE_BULGE_AXIS_RATIO_KEY])
+    the_gofher_params.sparcfire_bulge_axis_angle = float(
+        the_dict[SPARCFIRE_BULGE_AXIS_ANGLE_KEY])
+    the_gofher_params.sparcfire_bulge_disk_f = float(
+        the_dict[SPARCFIRE_BULGE_DISK_F_KEY])
 
     return the_gofher_params
 
@@ -640,6 +650,7 @@ def read_gofher_parameters_from_csv(csv_path: str | Path
         
     return the_gofher_params
 
-#LATER TODO: Add sep parameters and binning?
-#TODO: make sparcfire read/write optional for csv
+# Programmer Note: Features to be added in the future 
+# * Add sep parameters and binning
+# * make sparcfire read/write optional for csv
         

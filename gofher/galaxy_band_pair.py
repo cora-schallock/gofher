@@ -81,7 +81,8 @@ class GalaxyBandPair:
             raise ValueError("std must be strictly positive")
 
         if not is_float_int(self.mean_values) or not is_float_int(self.std_values):
-            raise RuntimeError("mean/std values must be float of int; ensure you called calculate_diff_image_prior")
+            raise RuntimeError("""mean/std values must be float of int; 
+            ensure you called calculate_diff_image_prior""")
 
         # Calculate bounds:
         lower_bound = self.mean_values - std * self.std_values
@@ -132,10 +133,12 @@ class GalaxyBandPair:
         # Validate mask is correct size
         # Programmer Note: here bluer_norm and redder_norm have same size
         if not is_2d_same_shape_arrays(pos_mask, bluer_norm):
-            raise ValueError("pos_mask has shape {pos_mask.shape} but bands have shape {bluer_norm.shape}")
+            raise ValueError("""pos_mask has shape {pos_mask.shape}
+            but bands have shape {bluer_norm.shape}""")
 
         if not is_2d_same_shape_arrays(neg_mask,bluer_norm):
-            raise ValueError("neg_mask has shape {neg_mask.shape} but bands have shape {bluer_norm.shape}")
+            raise ValueError("""neg_mask has shape {neg_mask.shape}
+            but bands have shape {bluer_norm.shape}""")
 
         self._diff_image = bluer_norm - redder_norm
 
@@ -152,6 +155,7 @@ class GalaxyBandPair:
         return self._diff_image
 
     def get_diff_image(self):
+        """Get the diff image"""
         return self._diff_image
 
     def classify(self, pos_side: str, neg_side: str):
@@ -177,7 +181,8 @@ class GalaxyBandPair:
             raise ValueError("neg_side can not be empty string")
 
         if self.pos_side_mean is None or self.neg_side_mean is None:
-            raise RuntimeError("pos/neg_side_mean invalid, assure calculate_diff_image() has been called first")
+            raise RuntimeError("""pos/neg_side_mean invalid
+            assure calculate_diff_image() has been called first""")
     
         self.pos_side_label = pos_side
         self.neg_side_label = neg_side

@@ -7,7 +7,7 @@ This mopdule contains a collection of functions for:
 
 from pathlib import Path
 import numpy as np
-from astropy.io import fits
+from astropy.io.fits import getdata
 
 
 def read_fits(fits_path: str | Path) -> np.ndarray:
@@ -32,10 +32,7 @@ def read_fits(fits_path: str | Path) -> np.ndarray:
     if fits_path.suffix != ".fits":
         raise ValueError(f"fits path must be .fits file; got {fits_path}")
 
-    the_fits = None
-
-    with fits.open(fits_path) as hdul:
-        the_fits = hdul[0].data
+    the_fits = getdata(fits_path)
 
     return the_fits
 

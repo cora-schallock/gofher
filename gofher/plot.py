@@ -1,15 +1,20 @@
-import matplotlib.pyplot as plt
+"""Create plots of GOFHER data"""
+
 import matplotlib.axes
 import matplotlib.colors as colors
 import matplotlib.patches as patches
-
-from astropy.visualization import make_lupton_rgb
 
 import numpy as np
 
 from gofher.gofher_parameters import GofherParameters
 from gofher.galaxy_band_pair import GalaxyBandPair
-from gofher.utils import is_float_int, is_2d_bool_array, is_2d_same_shape_arrays, is_int, is_2d_array
+from gofher.utils import (
+    is_float_int,
+    is_2d_bool_array,
+    is_2d_same_shape_arrays,
+    is_int,
+    is_2d_array
+)
 
 BLACK_GRADIENT_PIXEL = np.array([0, 0, 0, 255], dtype=np.uint8)  # Opaque black
 POS_MASK_PIXEL = np.array([190, 67, 159, 255], dtype=np.uint8) #BE439F
@@ -33,7 +38,8 @@ def plot_mask(ax: matplotlib.axes._axes.Axes,
     Graph displays the following:
         pos_side (i.e. pos bisection mask and area_to_norm) - semi-transparent POS_MASK_PIXEL
         neg_side (i.e. neg bisection mask and area_to_norm) - semi-transparent NEG_MASK_PIXEL
-        cropping box - if pixel bounds are passed, displays the cropping bounds used to display the diff images
+        cropping box - if pixel bounds are passed,
+            displays the cropping bounds used to display the diff images
         arrows - indicating the positive and negative side
         background - the data from the ref_band fits
 
@@ -48,7 +54,7 @@ def plot_mask(ax: matplotlib.axes._axes.Axes,
             for plotting ref_band_data
     """
     # Validate input:
-    if not isinstance(ax,matplotlib.axes._axes.Axes):
+    if not isinstance(ax,matplotlib.axes.Axes):
         raise TypeError("ax must be matplotlib axes")
     
     if not is_2d_array(ref_band_data):
@@ -209,7 +215,7 @@ def plot_mask(ax: matplotlib.axes._axes.Axes,
 
 def plot_diff_histogram(ax: matplotlib.axes._axes.Axes, 
                         bp: GalaxyBandPair, 
-                        range: tuple[float, float] | None = None):
+                        hrange: tuple[float, float] | None = None):
     """Plot a histogram of the diff values split between the pos and neg sides
     
     Args:"""
@@ -221,13 +227,13 @@ def plot_diff_histogram(ax: matplotlib.axes._axes.Axes,
     if not isinstance(bp,GalaxyBandPair):
         raise TypeError("bp must be GalaxyBandPair")
 
-    if range is not None and not isinstance(range,(tuple, list)):
+    if hrange is not None and not isinstance(hrange,(tuple, list)):
         raise TypeError("range must be tuple or list if provided or None otherwise")
 
-    if range is not None and len(range) != 2:
+    if hrange is not None and len(hrange) != 2:
         raise ValueError("range must be 2 element tuple or list if provided or None otherwise")
 
-    if not is_float_int(range[0]) or not is_float_int(range[1]):
+    if hrange is not None and (not is_float_int(hrange[0]) or not is_float_int(hrange[1])):
         raise TypeError("range elements must be either floats or ints")
 
     # Calculate number of bins:

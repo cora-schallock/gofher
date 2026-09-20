@@ -4,10 +4,18 @@ This module provides a collection of 2D binary masks
 that can be used on the data.
 """
 
-from gofher.arrays import create_meshgrid, create_major_axis_angle_array, create_minor_axis_angle_array, create_angle_array
-from gofher.utils import is_float_int, is_2d_array_shape
-
 import numpy as np
+
+from gofher.arrays import (
+    create_meshgrid,
+    create_major_axis_angle_array,
+    create_minor_axis_angle_array,
+    create_angle_array
+)
+from gofher.utils import (
+    is_float_int,
+    is_2d_array_shape
+)
 
 def create_ellipse_mask(h: float, k: float, 
                         a: float, b: float, 
@@ -212,7 +220,7 @@ def create_bisection_mask(h: float, k: float, theta: float,
 
     angle_array = create_angle_array(h, k, theta, shape)
 
-    pos_mask = (angle_array >= 0)
-    neg_mask = (angle_array < 0)
+    pos_mask = angle_array >= 0
+    neg_mask = angle_array < 0
     
     return (pos_mask, neg_mask)

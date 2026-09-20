@@ -9,7 +9,7 @@ from astropy.visualization import make_lupton_rgb
 from gofher.gofher_parameters import GofherParameters, INDETERMINANT_VOTE_LABEL
 from gofher.galaxy_band import GalaxyBand
 from gofher.galaxy_band_pair import GalaxyBandPair
-from gofher.file_helper import read_fits, write_array_file, assure_folder_exists
+from gofher.file_helper import read_fits, write_array_file
 from gofher.utils import is_2d_bool_array, generate_band_pair_tuples
 from gofher.plot import plot_mask, plot_diff_histogram, plot_diff_image
 
@@ -25,6 +25,7 @@ BAND_POS_MEAN_LABEL = "pos_side_mean"
 BAND_NEG_MEAN_LABEL = "neg_side_mean"
 
 class Galaxy:
+    """A module that allows GOFHER to be run on the fits images of a galaxy"""
     def __init__(self,
                  gofher_params: GofherParameters):
         """Initalize Galaxy object"""
@@ -124,7 +125,8 @@ class Galaxy:
         if self.gofher_params.shape == (-1,-1):
             self.gofher_params.shape = the_band_shape
         elif self.gofher_params.shape != the_band_shape:
-            raise ValueError(f"data shape {data.shape} does not match current shape of {self.gofher_params.shape}")
+            raise ValueError(f"""data shape {data.shape} does not match
+            current shape of {self.gofher_params.shape}""")
 
         # Finally add the shape and return the band:
         self._bands.append(band)
@@ -207,7 +209,8 @@ class Galaxy:
 
         # Assure there are atleast 2 wavebands:
         if len(galaxy_has_bands) < 2:
-            raise RuntimeError(f"galaxy must have at least 2 valid bands from {bluer_to_redder_bands}, has {len(galaxy_has_bands)}")
+            raise RuntimeError(f"""galaxy must have at least 2 valid bands
+            from {bluer_to_redder_bands}, has {len(galaxy_has_bands)}""")
 
         # Calaculate values for mask using sparcfire:
         self.gofher_params.calculate_from_sparcfire(sparcfire_bulge_disk_f)
@@ -278,10 +281,12 @@ class Galaxy:
     def _get_classification_label_from_majority_voting(self):
         """Conduct (unweighted) majority voting amongst band pairs to get classifcation"""
         if self.pos_label == INDETERMINANT_VOTE_LABEL or self.neg_label == INDETERMINANT_VOTE_LABEL:
-            raise RuntimeError(f"pos and neg labels can not be same as INDETERMINANT_VOTE_LABEL {INDETERMINANT_VOTE_LABEL}")
+            raise RuntimeError(f"""pos and neg labels can not be same
+            as INDETERMINANT_VOTE_LABEL {INDETERMINANT_VOTE_LABEL}""")
 
         if len(self._band_pairs) == 0:
-            raise RuntimeError("no bandpairs are present; assure Galaxy.run() called prior and has at least 1 band pair")
+            raise RuntimeError("""no bandpairs are present
+            assure Galaxy.run() called prior and has at least 1 band pair""")
 
         # Iterate through each band_pair and check if it voted for pos or neg side as redder side:
         for bp in self._band_pairs:
@@ -291,7 +296,8 @@ class Galaxy:
             elif bp_label == self.neg_label:
                 self.vote_count_neg += 1
             else:
-                raise ValueError(f"band pair {bp} voted '{bp_label}' which is neither pos label '{self.pos_label}' or neg label '{self.neg_label}'")
+                raise ValueError(f"""band pair {bp} voted '{bp_label}' which is neither
+                pos label '{self.pos_label}' or neg label '{self.neg_label}'""")
 
         # Assign classification label if pos/neg side has more votes otherwise indeterminant:
         if self.vote_count_pos > self.vote_count_neg:
@@ -420,7 +426,7 @@ class Galaxy:
         axs[0][0].imshow(color_image,origin="lower")
 
         # Get title for color image in the format of:
-        #   '{galaxy name}: {classifciation} ({vote count of classifciation} to {vote count of opposite ofclassifciation} votes)
+        #   '{name}: {classifciation} ({# votes for classifciation} to {# votes for opposite} votes)
         name = self.gofher_params.name
         vote = self.majority_classification_label
         if vote == self.neg_label:
@@ -492,9 +498,11 @@ class Galaxy:
                 raise RuntimeError("""band {} is missing normalization
                 Assure GalaxyBand.apply_normalization() has been called prior""")
                 
-            write_array_file(gb.get_normalization(), path_to_folder / f"{gb.band}_normalization.npy")
+            write_array_file(gb.get_normalization(), 
+                             path_to_folder / f"{gb.band}_normalization.npy")
 
     def get_csv_dict(self) -> dict:
+        """Get a dictinoary containning the data from a galaxy"""
         if self.pos_label == INDETERMINANT_VOTE_LABEL or self.neg_label == INDETERMINANT_VOTE_LABEL:
             raise RuntimeError("""pos/neg label can not be INDETERMINANT_VOTE_LABEL
             Assure Galaxy.run() has been called prior.""")

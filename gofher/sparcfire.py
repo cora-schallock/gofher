@@ -1,3 +1,5 @@
+"""Read in SpArcFiRe galaxy.csv data"""
+
 import inspect
 from collections.abc import Callable
 from pathlib import Path

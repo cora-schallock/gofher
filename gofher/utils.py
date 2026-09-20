@@ -135,7 +135,7 @@ def generate_all_band_pair_strings(bluer_to_redder: list[str]) -> list[str]:
 
     # Validate input:
     if not isinstance(bluer_to_redder, list):
-            raise TypeError("bluer_to_redder must be a list of strings")
+        raise TypeError("bluer_to_redder must be a list of strings")
     
     for each_band in bluer_to_redder:
         if not isinstance(each_band,str):
