@@ -240,15 +240,15 @@ def plot_diff_histogram(ax: matplotlib.axes._axes.Axes,
     number_of_bins = int(np.sqrt(len(bp.pos_side_values) + len(bp.neg_side_values)))
 
     # Plot the histogram:
-    ax.hist(bp.pos_side_values,
-            range=range,
+    _ = ax.hist(bp.pos_side_values,
+            range=hrange,
             color=POS_HIST_COLOR,
             alpha = HIST_BIN_ALPHA, 
             density=True,
             bins=number_of_bins)
     
     ax.hist(bp.neg_side_values,
-            range=range,
+            range=hrange,
             color=NEG_HIST_COLOR, 
             alpha = HIST_BIN_ALPHA, 
             density=True, 
