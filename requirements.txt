@@ -5,3 +5,4 @@ matplotlib>=3.10.9
 sep>=1.4
 pandas>=3.0.3
 astropy>=8.0.1
+astroquery>=0.4.11
