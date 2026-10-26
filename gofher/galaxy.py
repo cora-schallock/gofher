@@ -10,7 +10,7 @@ from gofher.gofher_parameters import GofherParameters, INDETERMINANT_VOTE_LABEL
 from gofher.galaxy_band import GalaxyBand
 from gofher.galaxy_band_pair import GalaxyBandPair
 from gofher.file_helper import read_fits, write_array_file
-from gofher.utils import is_2d_bool_array, generate_band_pair_tuples
+from gofher.utils import is_2d_bool_array, is_float_int_array, generate_band_pair_tuples
 from gofher.plot import plot_mask, plot_diff_histogram, plot_diff_image
 
 NAME_LABEL = "name"
@@ -500,6 +500,46 @@ class Galaxy:
                 
             write_array_file(gb.get_normalization(), 
                              path_to_folder / f"{gb.band}_normalization.npy")
+
+    def save_pos_and_neg_side_values(self, path_to_folder: str | Path):
+        """Save the normalized data"""
+            
+        if not isinstance(path_to_folder, (str, Path)):
+            raise TypeError(f"given path_to_folder '{path_to_folder}' is not a str or Path")
+            
+        if isinstance(path_to_folder, str):
+            path_to_folder = Path(path_to_folder)
+        
+        if path_to_folder.suffix != '':
+            raise ValueError("path_to_folder must be folder not file")
+        
+        if not path_to_folder.exists():
+            raise FileNotFoundError(f"{path_to_folder} does not exist")
+        
+        if not is_2d_bool_array(self._area_to_norm):
+            raise RuntimeError("""self._area_to_norm is not a 2D boolean numpy array
+            Assure Galaxy.run() is called first and _area_to_norm is correct""")
+                    
+        if len(self._band_pairs) == 0:
+            raise RuntimeError("""no bands pairs""")
+        
+        if path_to_folder.is_file():
+            raise ValueError(f"'{path_to_folder}' must be folder not file")
+        
+        if not path_to_folder.parent.exists():
+            raise RuntimeError(f"folder '{path_to_folder.parent}' does not exist")
+        
+        for bp in self._band_pairs:
+            if not is_float_int_array(bp.pos_side_values):
+                raise RuntimeError("""bandpair {} pos_side_values are not array of float/int
+                Assure GalaxyBand.calculate_diff_image() has been called prior""")
+
+            if not is_float_int_array(bp.neg_side_values):
+                raise RuntimeError("""bandpair {} pos_side_values are not array of float/int
+                Assure GalaxyBand.calculate_diff_image() has been called prior""")
+
+            write_array_file(bp.pos_side_values, path_to_folder/ f"{bp}_pos_side_values.npy")
+            write_array_file(bp.neg_side_values, path_to_folder/ f"{bp}_neg_side_values.npy")
 
     def get_csv_dict(self) -> dict:
         """Get a dictinoary containning the data from a galaxy"""
