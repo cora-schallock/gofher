@@ -28,7 +28,7 @@ def create_meshgrid(shape: tuple[int]) -> tuple[np.ndarray, np.ndarray]:
     # Create meshgrid:
     x = np.arange(shape[0])
     y = np.arange(shape[1])
-    return np.meshgrid(x, y)
+    return np.meshgrid(y,x)
 
 def create_distance_array(cx: float, cy: float, 
                           shape: tuple[int]) -> np.ndarray:

@@ -11,7 +11,7 @@ from gofher.galaxy_band import GalaxyBand
 from gofher.galaxy_band_pair import GalaxyBandPair
 from gofher.file_helper import read_fits, write_array_file
 from gofher.utils import is_2d_bool_array, is_float_int_array, generate_band_pair_tuples
-from gofher.plot import plot_mask, plot_diff_histogram, plot_diff_image
+from gofher.plot import plot_mask, plot_diff_histogram, plot_diff_image, normalize_image_rgb_channel
 
 NAME_LABEL = "name"
 POS_SIDE_LABEL = "pos_side"
@@ -222,7 +222,7 @@ class Galaxy:
         for band in galaxy_has_bands:
             the_band = self.get_band(band)
             the_band_valid_pixels = the_band.get_valid_pixel_mask()
-
+            #print(the_band_valid_pixels.shape,area_to_norm.shape)
             area_to_norm = np.logical_and(area_to_norm,the_band_valid_pixels)
 
         # If area_to_norm is provided, cobine it as well:
@@ -353,9 +353,14 @@ class Galaxy:
             else:
                 raise RuntimeError(f"band '{band}' missing and missing ref_band '{ref_band}'")
             rgb_data.append(data)
-        lupton_rgb = make_lupton_rgb(rgb_data[0],
-                                     rgb_data[1],
-                                     rgb_data[2],
+
+        lupton_r = normalize_image_rgb_channel(rgb_data[0])
+        lupton_g = normalize_image_rgb_channel(rgb_data[1])
+        lupton_b = normalize_image_rgb_channel(rgb_data[2])
+        
+        lupton_rgb = make_lupton_rgb(lupton_r,
+                                     lupton_g,
+                                     lupton_b,
                                      stretch=0.05,
                                      Q=5)
         return lupton_rgb

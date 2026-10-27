@@ -8,6 +8,7 @@ import numpy as np
 
 from gofher.gofher_parameters import GofherParameters
 from gofher.galaxy_band_pair import GalaxyBandPair
+from gofher.arrays import normalize_array
 from gofher.utils import (
     is_float_int,
     is_2d_bool_array,
@@ -26,6 +27,10 @@ CLEAR_GRADIENT_PIXEL = np.array([0, 0, 0, 0], dtype=np.uint8)   # Transparent cl
 POS_HIST_COLOR = '#BE439F'
 NEG_HIST_COLOR = '#DE9E36'
 HIST_BIN_ALPHA = 0.35
+
+def normalize_image_rgb_channel(rgb_channel):
+    rgb_channel = np.nan_to_num(rgb_channel, nan=0.0, posinf=0.0, neginf=0.0)
+    return normalize_array(rgb_channel)
 
 def plot_mask(ax: matplotlib.axes._axes.Axes,
               ref_band_data: np.ndarray,
@@ -84,10 +89,10 @@ def plot_mask(ax: matplotlib.axes._axes.Axes,
                 raise ValueError("each element in pixel_bounds must be strictly positive")
 
         if pixel_bounds[0] >= pixel_bounds[1]:
-            raise ValueError("pixel_bounds[0] must be larger than pixel_bounds[1]")
+            raise ValueError("pixel_bounds[0] must be smaller than pixel_bounds[1]")
         
         if pixel_bounds[2] >= pixel_bounds[3]:
-            raise ValueError("pixel_bounds[2] must be larger than pixel_bounds[3]")
+            raise ValueError("pixel_bounds[2] must be smaller than pixel_bounds[3]")
 
     if not is_float_int(c):
         raise TypeError("c must be int")
@@ -315,11 +320,11 @@ def plot_diff_image(ax: matplotlib.axes._axes.Axes,
             if not is_int(each_bound):
                 raise TypeError("all elements of pixel_bounds must be int")
 
-    if pixel_bounds is not None and pixel_bounds[0] > pixel_bounds[2]:
-        raise ValueError("pixel_bounds xmin (at index 0) must be smaller than xmax (at index 2)")
+    if pixel_bounds is not None and pixel_bounds[0] >= pixel_bounds[1]:
+        raise ValueError("pixel_bounds xmin (at index 0) must be smaller than xmax (at index 1)")
 
-    if pixel_bounds is not None and pixel_bounds[1] > pixel_bounds[3]:
-        raise ValueError("pixel_bounds ymin (at index 1) must be smaller than ymax (at index 3)")
+    if pixel_bounds is not None and pixel_bounds[2] >= pixel_bounds[3]:
+        raise ValueError("pixel_bounds ymin (at index 2) must be smaller than ymax (at index 3)")
 
     # Mask out all pixels not included in area_to_norm:
     outside_mask = np.where(area_to_norm[..., None], CLEAR_GRADIENT_PIXEL, BLACK_GRADIENT_PIXEL)
@@ -333,7 +338,11 @@ def plot_diff_image(ax: matplotlib.axes._axes.Axes,
     #   0.0 is in the middle
     #   Since we are using a RdBu color map, redder regions will appear red
     #   bluer regions will appear blue
-    norm = colors.TwoSlopeNorm(vcenter=0, vmin=the_min, vmax=the_max)
+
+    #Fixing issue when the_min is 0 (happened with NGC6978 with SpArcFiRe params)
+    safe_min = the_min if the_min < 0 else -1e-10
+
+    norm = colors.TwoSlopeNorm(vcenter=0, vmin=safe_min, vmax=the_max)
 
     # Use tick marks on colorbar with max/min value and 0 value:
     ticks = np.array(sorted([the_max,0.0,the_min]))

@@ -5,6 +5,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from gofher.gofher_parameters import GofherParameters
 from gofher.utils import is_float_int
@@ -90,6 +91,9 @@ def _gofher_params_from_sparcfire_row(row: pd.Series,
     for column in DATA_COLUMNS:
         if not column in has_columns:
             raise ValueError(f"Missing required column {column}")
+
+        if np.isnan(row[column]):
+            raise ValueError(f"Column {column} is nan. SpArcFiRe fit may have failed, check csv.")
         
         if not is_float_int(row[column]):
             raise ValueError(f"Column {column} must be a float/int or numpy equivalent")
